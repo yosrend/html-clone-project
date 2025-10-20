@@ -1,7 +1,4 @@
 import type { NextConfig } from "next";
-import path from "node:path";
-
-const LOADER = path.resolve(__dirname, 'src/visual-edits/component-tagger-loader.js');
 
 const nextConfig: NextConfig = {
   images: {
@@ -32,16 +29,8 @@ const nextConfig: NextConfig = {
     } : false,
   },
   
-  turbopack: {
-    rules: {
-      "*.{jsx,tsx}": {
-        loaders: [LOADER]
-      }
-    }
-  },
-  
   webpack: (config, { dev, isServer }) => {
-    // Only apply obfuscation in production client-side builds
+    // Only apply minification in production client-side builds
     if (!dev && !isServer) {
       config.optimization = {
         ...config.optimization,
@@ -57,4 +46,3 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
-// Orchids restart: 1759312750652
