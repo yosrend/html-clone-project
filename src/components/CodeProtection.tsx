@@ -9,6 +9,16 @@ export function CodeProtection() {
       return;
     }
 
+    // Bypass protection if debug mode enabled
+    // Usage: Add ?debug=true to URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const isDebugMode = urlParams.get('debug') === 'true';
+    
+    if (isDebugMode) {
+      console.log('🔓 Debug mode enabled - Code protection disabled');
+      return;
+    }
+
     // 1. Disable right-click
     const disableRightClick = (e: MouseEvent) => {
       e.preventDefault();
