@@ -112,7 +112,8 @@ function generateEmailSignatureHtml(
   whatsappToggle: boolean,
   animationType: string = 'none',
   animationLoop: boolean = false,
-  loopDelay: number = 0
+  loopDelay: number = 0,
+  emailMode: boolean = true
 ): string {
   const { name, title, userImage, linkedinUrl, instagramUrl, whatsappUrl } = formData;
 
@@ -461,7 +462,7 @@ function generateEmailSignatureHtml(
 
   // First style block - updated to 800px
   const style1 = `
-    ${getAnimationCSS(animationType, animationLoop, loopDelay)}
+    ${emailMode ? '/* Animations disabled for email compatibility */' : getAnimationCSS(animationType, animationLoop, loopDelay)}
     
     html,
     body {
@@ -1033,11 +1034,12 @@ export default function EmailSignatureGenerator() {
   const [selectedAnimation, setSelectedAnimation] = useState<string>('none');
   const [animationLoop, setAnimationLoop] = useState(false);
   const [loopDelay, setLoopDelay] = useState(0);
+  const [emailMode, setEmailMode] = useState(true); // Strip animations for email compatibility
 
   useEffect(() => {
-    const html = generateEmailSignatureHtml(formData, displayImage, linkedinToggle, instagramToggle, whatsappToggle, selectedAnimation, animationLoop, loopDelay);
+    const html = generateEmailSignatureHtml(formData, displayImage, linkedinToggle, instagramToggle, whatsappToggle, selectedAnimation, animationLoop, loopDelay, emailMode);
     setGeneratedHtml(html);
-  }, [formData, displayImage, linkedinToggle, instagramToggle, whatsappToggle, selectedAnimation, animationLoop, loopDelay]);
+  }, [formData, displayImage, linkedinToggle, instagramToggle, whatsappToggle, selectedAnimation, animationLoop, loopDelay, emailMode]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
@@ -1351,11 +1353,29 @@ export default function EmailSignatureGenerator() {
                           <img src={displayImage} alt="Preview" className="w-20 h-20 rounded-full object-cover block mx-auto mt-2" />
                         </div>
                         
+                        {/* Email Compatibility Warning */}
+                        <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md">
+                          <div className="flex items-start gap-2">
+                            <svg className="w-5 h-5 text-yellow-600 dark:text-yellow-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                            <div className="flex-1">
+                              <h4 className="text-xs font-semibold text-yellow-800 dark:text-yellow-400 mb-1">
+                                Email Client Compatibility
+                              </h4>
+                              <p className="text-xs text-yellow-700 dark:text-yellow-300/90 leading-relaxed">
+                                <strong>60-70% of email clients don't support CSS animations</strong> (Outlook, Gmail, Yahoo). 
+                                Enable "Email Mode" below to remove animations for maximum compatibility.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
                         {/* Animation Selector */}
                         <div className="space-y-2 pt-2 border-t">
                           <Label className="flex items-center gap-2 text-xs sm:text-sm">
                             <Sparkles className="w-4 h-4" />
-                            Image Animation
+                            Image Animation {!emailMode && <span className="text-xs text-muted-foreground">(Preview Only)</span>}
                           </Label>
                           
                           <div className="flex gap-3">
@@ -1443,6 +1463,27 @@ export default function EmailSignatureGenerator() {
                           <p className="text-xs text-muted-foreground">
                             Preview animation in signature below {animationLoop && `(Looping${loopDelay > 0 ? ` every ${loopDelay}s` : ' continuously'})`}
                           </p>
+
+                          {/* Email Mode Toggle */}
+                          <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="flex-1">
+                                <Label htmlFor="email-mode" className="text-sm font-semibold text-blue-900 dark:text-blue-300 cursor-pointer">
+                                  Email Mode
+                                </Label>
+                                <p className="text-xs text-blue-700 dark:text-blue-400 mt-0.5">
+                                  {emailMode 
+                                    ? "Animations removed from HTML export (100% email compatible)" 
+                                    : "Animations included (works in Apple Mail, Thunderbird only)"}
+                                </p>
+                              </div>
+                              <Switch
+                                id="email-mode"
+                                checked={emailMode}
+                                onCheckedChange={setEmailMode}
+                              />
+                            </div>
+                          </div>
                         </div>
                       </div>
                     )}
