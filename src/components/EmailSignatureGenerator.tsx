@@ -1114,11 +1114,23 @@ export default function EmailSignatureGenerator() {
           description: "Your circular profile image is now set for the signature.",
         });
       } else {
-        sonnerToast.error("Upload failed", { description: data.error || "Please try again." });
+        // Show detailed error for cropped upload
+        const errorMsg = data.error || res.statusText || "Upload failed";
+        const errorDetail = `Status: ${res.status}\nError: ${errorMsg}`;
+        sonnerToast.error("Crop Upload Failed", { 
+          description: errorDetail,
+          duration: 10000
+        });
+        alert(`CROP UPLOAD ERROR\n\n${errorDetail}`);
       }
     } catch (error) {
       console.error('Crop error:', error);
-      sonnerToast.error("Cropping failed", { description: "Please try again." });
+      const errMsg = error instanceof Error ? error.message : String(error);
+      sonnerToast.error("Cropping Error", { 
+        description: errMsg,
+        duration: 10000
+      });
+      alert(`CROPPING ERROR\n\n${errMsg}`);
     } finally {
       setUploadingImage(false);
       setShowCropper(false);
@@ -1158,10 +1170,24 @@ export default function EmailSignatureGenerator() {
         setFormData(prev => ({ ...prev, userImage: data.imageUrl }));
         sonnerToast("Image uploaded successfully!", { description: "Your uploaded image is now set for the signature." });
       } else {
-        sonnerToast.error("Upload failed", { description: data.error || "Please try again." });
+        // Show detailed error message
+        const errorMsg = data.error || res.statusText || "Upload failed";
+        const errorDetail = `Status: ${res.status}\nError: ${errorMsg}\nURL: /api/upload-image-vercel`;
+        sonnerToast.error("Upload Failed - Check Details", { 
+          description: errorDetail,
+          duration: 10000 // 10 seconds to read
+        });
+        // Also alert for visibility
+        alert(`UPLOAD ERROR\n\n${errorDetail}\n\nCheck Vercel Dashboard:\n- Storage → Blob connected?\n- Environment Variables → BLOB_READ_WRITE_TOKEN exists?`);
       }
     } catch (error) {
-      sonnerToast.error("Upload error", { description: "Please try again." });
+      const errMsg = error instanceof Error ? error.message : String(error);
+      const fullError = `Network Error: ${errMsg}`;
+      sonnerToast.error("Network Error", { 
+        description: fullError,
+        duration: 10000
+      });
+      alert(`NETWORK ERROR\n\n${fullError}\n\nPossible causes:\n- Server not responding\n- Network timeout\n- CORS issue`);
     } finally {
       setUploadingImage(false);
       // Reset file input
