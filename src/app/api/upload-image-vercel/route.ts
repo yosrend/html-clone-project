@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { uploadImage } from '@/lib/r2-storage';
+import { uploadImage } from '@/lib/vercel-blob-storage';
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Upload ke R2 dengan resize otomatis
+    // Upload ke Vercel Blob dengan resize otomatis
     const result = await uploadImage(file, {
       width: 400,
       height: 400,
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       imageUrl: result.url,
-      filename: result.filename,
+      pathname: result.pathname,
       size: result.size,
       contentType: result.contentType,
     });

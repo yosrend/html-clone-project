@@ -7,6 +7,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { Inter } from 'next/font/google'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import ThemeToggle from '@/components/ThemeToggle'
+import { CodeProtection } from '@/components/CodeProtection'
 
 const inter = Inter({ 
   subsets: ['latin'], 
@@ -30,6 +31,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
+        <CodeProtection />
         <ThemeProvider>
           {children}
           <ThemeToggle />

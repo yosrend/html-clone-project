@@ -2,7 +2,7 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
-const Card = React.forwardRef<{ className?: string }, React.HTMLAttributes<HTMLDivElement>>(
+const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
@@ -14,6 +14,7 @@ const Card = React.forwardRef<{ className?: string }, React.HTMLAttributes<HTMLD
     />
   )
 )
+Card.displayName = "Card"
 
 function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
@@ -61,16 +62,19 @@ function CardAction({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
-const CardContent = React.forwardRef(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn(
-      "p-6 pt-0",
-      className
-    )}
-    {...props}
-  />
-))
+const CardContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
+    <div
+      ref={ref}
+      className={cn(
+        "p-6 pt-0",
+        className
+      )}
+      {...props}
+    />
+  )
+)
+CardContent.displayName = "CardContent"
 
 function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
   return (

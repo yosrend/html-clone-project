@@ -3,9 +3,12 @@ import { db } from '@/db';
 import { images } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(
+  request: NextRequest, 
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     // Validate ID parameter
     if (!id || isNaN(parseInt(id))) {
@@ -31,7 +34,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     const imageRecord = image[0];
 
     // Return the BLOB data with proper Content-Type header
-    return new Response(imageRecord.data, {
+    return new Response(imageRecord.data as BodyInit, {
       headers: {
         'Content-Type': imageRecord.contentType,
       },

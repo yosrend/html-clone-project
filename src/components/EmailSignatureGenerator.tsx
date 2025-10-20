@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { toast as sonnerToast } from "sonner";
-import { Check } from 'lucide-react';
+import { Check, Sparkles } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -108,7 +109,10 @@ function generateEmailSignatureHtml(
   displayImage: string, 
   linkedinToggle: boolean, 
   instagramToggle: boolean, 
-  whatsappToggle: boolean
+  whatsappToggle: boolean,
+  animationType: string = 'none',
+  animationLoop: boolean = false,
+  loopDelay: number = 0
 ): string {
   const { name, title, userImage, linkedinUrl, instagramUrl, whatsappUrl } = formData;
 
@@ -195,8 +199,270 @@ function generateEmailSignatureHtml(
     </tr>
   `;
 
+  // Animation CSS based on selected type
+  const getAnimationCSS = (type: string, loop: boolean = false, interval: number = 0) => {
+    // Animations that already have infinite by default (continuous animations)
+    const alreadyInfinite = ['float', 'pulse', 'spin', 'ping', 'glow'];
+    
+    // If loop is enabled and animation is not already infinite, append 'infinite'
+    // If loop is disabled, use iteration count 1 (except for animations that are already infinite)
+    const getIterationCount = (animType: string) => {
+      if (alreadyInfinite.includes(animType)) {
+        // For continuous animations, respect the loop toggle
+        return loop ? 'infinite' : '1';
+      }
+      // For other animations, add infinite if loop is enabled
+      return loop ? 'infinite' : '';
+    };
+    
+    const iterCount = getIterationCount(type);
+    
+    // Default durations for each animation type
+    const defaultDurations: Record<string, number> = {
+      'fade': 0.6,
+      'zoom': 0.6,
+      'slide-left': 0.6,
+      'slide-right': 0.6,
+      'slide-up': 0.6,
+      'slide-down': 0.6,
+      'rotate': 0.8,
+      'flip': 0.6,
+      'roll': 0.6,
+      'bounce': 1,
+      'shake': 0.8,
+      'swing': 1,
+      'wobble': 1,
+      'jello': 1,
+      'heartbeat': 1.3,
+      'flash': 1,
+      'rubberband': 1,
+      'tada': 1,
+      'float': 3,
+      'pulse': 2,
+      'spin': 2,
+      'ping': 1.5,
+      'pop': 0.5,
+      'glow': 2,
+      'blur-in': 0.8
+    };
+    
+    // Use custom interval if loop is enabled and interval > 0, otherwise use default duration
+    const animDuration = (loop && interval > 0) ? interval : (defaultDurations[type] || 1);
+    
+    const animations: Record<string, string> = {
+      // Entrance Animations
+      'fade': `
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        .animated-image { animation: fadeIn ${animDuration}s ease-out ${iterCount}; }
+      `,
+      'zoom': `
+        @keyframes zoomIn {
+          from { opacity: 0; transform: scale(0); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        .animated-image { animation: zoomIn ${animDuration}s ease-out ${iterCount}; }
+      `,
+      'slide-left': `
+        @keyframes slideLeft {
+          from { opacity: 0; transform: translateX(-100px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+        .animated-image { animation: slideLeft ${animDuration}s ease-out ${iterCount}; }
+      `,
+      'slide-right': `
+        @keyframes slideRight {
+          from { opacity: 0; transform: translateX(100px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+        .animated-image { animation: slideRight ${animDuration}s ease-out ${iterCount}; }
+      `,
+      'slide-up': `
+        @keyframes slideUp {
+          from { opacity: 0; transform: translateY(100px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animated-image { animation: slideUp ${animDuration}s ease-out ${iterCount}; }
+      `,
+      'slide-down': `
+        @keyframes slideDown {
+          from { opacity: 0; transform: translateY(-100px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animated-image { animation: slideDown ${animDuration}s ease-out ${iterCount}; }
+      `,
+      'rotate': `
+        @keyframes rotateIn {
+          from { opacity: 0; transform: rotate(-180deg); }
+          to { opacity: 1; transform: rotate(0deg); }
+        }
+        .animated-image { animation: rotateIn ${animDuration}s ease-out ${iterCount}; }
+      `,
+      'flip': `
+        @keyframes flipIn {
+          from { opacity: 0; transform: rotateY(-90deg); }
+          to { opacity: 1; transform: rotateY(0); }
+        }
+        .animated-image { animation: flipIn ${animDuration}s ease-out ${iterCount}; }
+      `,
+      'roll': `
+        @keyframes rollIn {
+          from { opacity: 0; transform: translateX(-100%) rotate(-120deg); }
+          to { opacity: 1; transform: translateX(0) rotate(0deg); }
+        }
+        .animated-image { animation: rollIn ${animDuration}s ease-out ${iterCount}; }
+      `,
+      
+      // Attention Seekers
+      'bounce': `
+        @keyframes bounce {
+          0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+          40% { transform: translateY(-30px); }
+          60% { transform: translateY(-15px); }
+        }
+        .animated-image { animation: bounce ${animDuration}s ease-in-out ${iterCount}; }
+      `,
+      'shake': `
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          10%, 30%, 50%, 70%, 90% { transform: translateX(-10px); }
+          20%, 40%, 60%, 80% { transform: translateX(10px); }
+        }
+        .animated-image { animation: shake ${animDuration}s ease-in-out ${iterCount}; }
+      `,
+      'swing': `
+        @keyframes swing {
+          20% { transform: rotate(15deg); }
+          40% { transform: rotate(-10deg); }
+          60% { transform: rotate(5deg); }
+          80% { transform: rotate(-5deg); }
+          100% { transform: rotate(0deg); }
+        }
+        .animated-image { animation: swing ${animDuration}s ease-in-out ${iterCount}; transform-origin: top center; }
+      `,
+      'wobble': `
+        @keyframes wobble {
+          0%, 100% { transform: translateX(0) rotate(0); }
+          15% { transform: translateX(-25px) rotate(-5deg); }
+          30% { transform: translateX(20px) rotate(3deg); }
+          45% { transform: translateX(-15px) rotate(-3deg); }
+          60% { transform: translateX(10px) rotate(2deg); }
+          75% { transform: translateX(-5px) rotate(-1deg); }
+        }
+        .animated-image { animation: wobble ${animDuration}s ease-in-out ${iterCount}; }
+      `,
+      'jello': `
+        @keyframes jello {
+          0%, 100% { transform: skewX(0deg) skewY(0deg); }
+          30% { transform: skewX(25deg) skewY(25deg); }
+          40% { transform: skewX(-15deg) skewY(-15deg); }
+          50% { transform: skewX(15deg) skewY(15deg); }
+          65% { transform: skewX(-5deg) skewY(-5deg); }
+          75% { transform: skewX(5deg) skewY(5deg); }
+        }
+        .animated-image { animation: jello ${animDuration}s ease-in-out ${iterCount}; transform-origin: center; }
+      `,
+      'heartbeat': `
+        @keyframes heartbeat {
+          0%, 100% { transform: scale(1); }
+          14% { transform: scale(1.3); }
+          28% { transform: scale(1); }
+          42% { transform: scale(1.3); }
+          70% { transform: scale(1); }
+        }
+        .animated-image { animation: heartbeat ${animDuration}s ease-in-out ${iterCount}; }
+      `,
+      'flash': `
+        @keyframes flash {
+          0%, 50%, 100% { opacity: 1; }
+          25%, 75% { opacity: 0; }
+        }
+        .animated-image { animation: flash ${animDuration}s ease-in-out ${iterCount}; }
+      `,
+      'rubberband': `
+        @keyframes rubberBand {
+          0%, 100% { transform: scale(1); }
+          30% { transform: scaleX(1.25) scaleY(0.75); }
+          40% { transform: scaleX(0.75) scaleY(1.25); }
+          50% { transform: scaleX(1.15) scaleY(0.85); }
+          65% { transform: scaleX(0.95) scaleY(1.05); }
+          75% { transform: scaleX(1.05) scaleY(0.95); }
+        }
+        .animated-image { animation: rubberBand ${animDuration}s ease-in-out ${iterCount}; }
+      `,
+      'tada': `
+        @keyframes tada {
+          0%, 100% { transform: scale(1) rotate(0); }
+          10%, 20% { transform: scale(0.9) rotate(-3deg); }
+          30%, 50%, 70%, 90% { transform: scale(1.1) rotate(3deg); }
+          40%, 60%, 80% { transform: scale(1.1) rotate(-3deg); }
+        }
+        .animated-image { animation: tada ${animDuration}s ease-in-out ${iterCount}; }
+      `,
+      
+      // Continuous Animations
+      'float': `
+        @keyframes float {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-10px); }
+        }
+        .animated-image { animation: float ${animDuration}s ease-in-out ${iterCount}; }
+      `,
+      'pulse': `
+        @keyframes pulse {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.05); }
+        }
+        .animated-image { animation: pulse ${animDuration}s ease-in-out ${iterCount}; }
+      `,
+      'spin': `
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        .animated-image { animation: spin ${animDuration}s linear ${iterCount}; }
+      `,
+      'ping': `
+        @keyframes ping {
+          0% { transform: scale(1); opacity: 1; }
+          75%, 100% { transform: scale(1.2); opacity: 0; }
+        }
+        .animated-image { animation: ping ${animDuration}s cubic-bezier(0, 0, 0.2, 1) ${iterCount}; }
+      `,
+      
+      // Special Effects
+      'pop': `
+        @keyframes popIn {
+          0% { transform: scale(0); }
+          50% { transform: scale(1.1); }
+          100% { transform: scale(1); }
+        }
+        .animated-image { animation: popIn ${animDuration}s ease-out ${iterCount}; }
+      `,
+      'glow': `
+        @keyframes glow {
+          0%, 100% { box-shadow: 0 0 5px rgba(255, 255, 255, 0.5); }
+          50% { box-shadow: 0 0 20px rgba(255, 255, 255, 0.8), 0 0 30px rgba(255, 255, 255, 0.6); }
+        }
+        .animated-image { animation: glow ${animDuration}s ease-in-out ${iterCount}; }
+      `,
+      'blur-in': `
+        @keyframes blurIn {
+          from { opacity: 0; filter: blur(10px); }
+          to { opacity: 1; filter: blur(0); }
+        }
+        .animated-image { animation: blurIn ${animDuration}s ease-out ${iterCount}; }
+      `
+    };
+    return animations[type] || '';
+  };
+
   // First style block - updated to 800px
   const style1 = `
+    ${getAnimationCSS(animationType, animationLoop, loopDelay)}
+    
     html,
     body {
         margin: 0 !important;
@@ -485,7 +751,7 @@ function generateEmailSignatureHtml(
                                                                                                                 <td class="pc-w800-halign-center" align="left" valign="top" style="line-height: 1px; font-size: 1px;">
                                                                                                                     <table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation">
                                                                                                                         <tr>
-                                                                                                                            <td class="pc-w800-halign-center" align="left" valign="top" style="padding: 0px 0px 12px 0px; height: auto;"> <img src="${userImageUrl}" class="pc-w800-align-center" width="148" height="148" alt="" style="display: block; outline: 0; line-height: 100%; -ms-interpolation-mode: bicubic; width: 148px; height: 148px; max-width: 100%; border: 0; border-radius: 50%;" /> </td>
+                                                                                                                            <td class="pc-w800-halign-center" align="left" valign="top" style="padding: 0px 0px 12px 0px; height: auto;"> <img src="${userImageUrl}" class="pc-w800-align-center ${animationType !== 'none' ? 'animated-image' : ''}" width="148" height="148" alt="" style="display: block; outline: 0; line-height: 100%; -ms-interpolation-mode: bicubic; width: 148px; height: 148px; max-width: 100%; border: 0; border-radius: 50%;" /> </td>
                                                                                                                         </tr>
                                                                                                                     </table>
                                                                                                                 </td>
@@ -690,6 +956,58 @@ async function getHtmlWithEmbeddedImage(html: string, userImageUrl: string): Pro
   return Promise.resolve(html);
 }
 
+// Animation variants for Framer Motion
+const getAnimationVariants = (animationType: string) => {
+  const animations: Record<string, any> = {
+    'none': {
+      initial: {},
+      animate: {},
+      transition: {}
+    },
+    'fade': {
+      initial: { opacity: 0 },
+      animate: { opacity: 1 },
+      transition: { duration: 0.6 }
+    },
+    'zoom': {
+      initial: { scale: 0, opacity: 0 },
+      animate: { scale: 1, opacity: 1 },
+      transition: { type: "spring", stiffness: 260, damping: 20 }
+    },
+    'slide-left': {
+      initial: { x: -100, opacity: 0 },
+      animate: { x: 0, opacity: 1 },
+      transition: { duration: 0.6 }
+    },
+    'slide-right': {
+      initial: { x: 100, opacity: 0 },
+      animate: { x: 0, opacity: 1 },
+      transition: { duration: 0.6 }
+    },
+    'rotate': {
+      initial: { opacity: 0, rotate: -180 },
+      animate: { opacity: 1, rotate: 0 },
+      transition: { duration: 0.8 }
+    },
+    'pop': {
+      initial: { scale: 0 },
+      animate: { scale: 1 },
+      transition: { type: "spring", stiffness: 500, damping: 15 }
+    },
+    'float': {
+      initial: { y: 0 },
+      animate: { y: [-5, 5, -5] },
+      transition: { duration: 3, repeat: Infinity, ease: "easeInOut" }
+    },
+    'pulse': {
+      initial: { scale: 1 },
+      animate: { scale: [1, 1.05, 1] },
+      transition: { duration: 2, repeat: Infinity, ease: "easeInOut" }
+    }
+  };
+  return animations[animationType] || animations['none'];
+};
+
 export default function EmailSignatureGenerator() {
   const [formData, setFormData] = useState<FormData>({
     name: 'Hacene Taibi',
@@ -712,11 +1030,14 @@ export default function EmailSignatureGenerator() {
   const [linkedinToggle, setLinkedinToggle] = useState(true);
   const [instagramToggle, setInstagramToggle] = useState(true);
   const [whatsappToggle, setWhatsappToggle] = useState(true);
+  const [selectedAnimation, setSelectedAnimation] = useState<string>('none');
+  const [animationLoop, setAnimationLoop] = useState(false);
+  const [loopDelay, setLoopDelay] = useState(0);
 
   useEffect(() => {
-    const html = generateEmailSignatureHtml(formData, displayImage, linkedinToggle, instagramToggle, whatsappToggle);
+    const html = generateEmailSignatureHtml(formData, displayImage, linkedinToggle, instagramToggle, whatsappToggle, selectedAnimation, animationLoop, loopDelay);
     setGeneratedHtml(html);
-  }, [formData, displayImage, linkedinToggle, instagramToggle, whatsappToggle]);
+  }, [formData, displayImage, linkedinToggle, instagramToggle, whatsappToggle, selectedAnimation, animationLoop, loopDelay]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
@@ -752,12 +1073,12 @@ export default function EmailSignatureGenerator() {
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      sonnerToast("Only image files are allowed.", { variant: "destructive" });
+      sonnerToast.error("Only image files are allowed.");
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      sonnerToast("File too large. Maximum 5MB.", { variant: "destructive" });
+      sonnerToast.error("File too large. Maximum 5MB.");
       return;
     }
 
@@ -779,7 +1100,7 @@ export default function EmailSignatureGenerator() {
       const formDataToSend = new FormData();
       formDataToSend.append('file', croppedImageBlob, 'cropped-image.jpg');
 
-      const res = await fetch('/api/upload-image', {
+      const res = await fetch('/api/upload-image-vercel', {
         method: 'POST',
         body: formDataToSend,
       });
@@ -793,11 +1114,11 @@ export default function EmailSignatureGenerator() {
           description: "Your circular profile image is now set for the signature.",
         });
       } else {
-        sonnerToast("Upload failed", { description: data.error || "Please try again.", variant: "destructive" });
+        sonnerToast.error("Upload failed", { description: data.error || "Please try again." });
       }
     } catch (error) {
       console.error('Crop error:', error);
-      sonnerToast("Cropping failed", { description: "Please try again.", variant: "destructive" });
+      sonnerToast.error("Cropping failed", { description: "Please try again." });
     } finally {
       setUploadingImage(false);
       setShowCropper(false);
@@ -812,12 +1133,12 @@ export default function EmailSignatureGenerator() {
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      sonnerToast("Only image files are allowed.", { variant: "destructive" });
+      sonnerToast.error("Only image files are allowed.");
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      sonnerToast("File too large. Maximum 5MB.", { variant: "destructive" });
+      sonnerToast.error("File too large. Maximum 5MB.");
       return;
     }
 
@@ -826,7 +1147,7 @@ export default function EmailSignatureGenerator() {
       const formDataToSend = new FormData();
       formDataToSend.append('file', file);
 
-      const res = await fetch('/api/upload-image', {
+      const res = await fetch('/api/upload-image-vercel', {
         method: 'POST',
         body: formDataToSend,
       });
@@ -837,10 +1158,10 @@ export default function EmailSignatureGenerator() {
         setFormData(prev => ({ ...prev, userImage: data.imageUrl }));
         sonnerToast("Image uploaded successfully!", { description: "Your uploaded image is now set for the signature." });
       } else {
-        sonnerToast("Upload failed", { description: data.error || "Please try again.", variant: "destructive" });
+        sonnerToast.error("Upload failed", { description: data.error || "Please try again." });
       }
     } catch (error) {
-      sonnerToast("Upload error", { description: "Please try again.", variant: "destructive" });
+      sonnerToast.error("Upload error", { description: "Please try again." });
     } finally {
       setUploadingImage(false);
       // Reset file input
@@ -854,7 +1175,7 @@ export default function EmailSignatureGenerator() {
       htmlToCopy = await getHtmlWithEmbeddedImage(generatedHtml, formData.userImage || displayImage);
     } catch (error) {
       htmlToCopy = generatedHtml;
-      sonnerToast("Copied without embedded image. Use Download for offline viewing.", { variant: "default" });
+      sonnerToast("Copied without embedded image. Use Download for offline viewing.");
     }
     if (htmlToCopy) {
       try {
@@ -998,9 +1319,105 @@ export default function EmailSignatureGenerator() {
                     />
                     <p className="text-xs text-muted-foreground">Max file size: 5MB. Only images allowed.</p>
                     {displayImage && (
-                      <div className="space-y-2">
-                        <p className="text-xs sm:text-sm text-muted-foreground">Current image</p>
-                        <img src={displayImage} alt="Preview" className="w-20 h-20 rounded-full object-cover block mx-auto mt-2" />
+                      <div className="space-y-3">
+                        <div className="space-y-2">
+                          <p className="text-xs sm:text-sm text-muted-foreground">Current image</p>
+                          <img src={displayImage} alt="Preview" className="w-20 h-20 rounded-full object-cover block mx-auto mt-2" />
+                        </div>
+                        
+                        {/* Animation Selector */}
+                        <div className="space-y-2 pt-2 border-t">
+                          <Label className="flex items-center gap-2 text-xs sm:text-sm">
+                            <Sparkles className="w-4 h-4" />
+                            Image Animation
+                          </Label>
+                          
+                          <div className="flex gap-3">
+                            <div className="flex-[2]">
+                              <select
+                                value={selectedAnimation}
+                                onChange={(e) => setSelectedAnimation(e.target.value)}
+                                className="w-full px-3 py-2 text-sm border rounded-md bg-background"
+                              >
+                                <optgroup label="No Animation">
+                                  <option value="none">None</option>
+                                </optgroup>
+                                
+                                <optgroup label="Entrance Animations">
+                                  <option value="fade">Fade In</option>
+                                  <option value="zoom">Zoom In</option>
+                                  <option value="slide-left">Slide from Left</option>
+                                  <option value="slide-right">Slide from Right</option>
+                                  <option value="slide-up">Slide from Bottom</option>
+                                  <option value="slide-down">Slide from Top</option>
+                                  <option value="rotate">Rotate In</option>
+                                  <option value="flip">Flip In</option>
+                                  <option value="roll">Roll In</option>
+                                </optgroup>
+                                
+                                <optgroup label="Attention Seekers">
+                                  <option value="bounce">Bounce</option>
+                                  <option value="shake">Shake</option>
+                                  <option value="swing">Swing</option>
+                                  <option value="wobble">Wobble</option>
+                                  <option value="jello">Jello</option>
+                                  <option value="heartbeat">Heartbeat</option>
+                                  <option value="flash">Flash</option>
+                                  <option value="rubberband">Rubber Band</option>
+                                  <option value="tada">Tada</option>
+                                </optgroup>
+                                
+                                <optgroup label="Continuous Animations">
+                                  <option value="float">Float</option>
+                                  <option value="pulse">Pulse</option>
+                                  <option value="spin">Spin</option>
+                                  <option value="ping">Ping</option>
+                                </optgroup>
+                                
+                                <optgroup label="Special Effects">
+                                  <option value="pop">Pop</option>
+                                  <option value="glow">Glow</option>
+                                  <option value="blur-in">Blur In</option>
+                                </optgroup>
+                              </select>
+                            </div>
+                            
+                            {/* Loop Toggle */}
+                            <div className="flex gap-2 px-3 py-2 border rounded-md bg-background">
+                              <Label htmlFor="animation-loop" className="text-xs cursor-pointer whitespace-nowrap">
+                                Looping
+                              </Label>
+                              <Switch
+                                id="animation-loop"
+                                checked={animationLoop}
+                                onCheckedChange={setAnimationLoop}
+                                disabled={selectedAnimation === 'none'}
+                              />
+                              {animationLoop && (
+                                <>
+                                  <Label htmlFor="loop-delay" className="text-xs text-muted-foreground whitespace-nowrap ml-4">
+                                    Looping Time
+                                  </Label>
+                                  <Input
+                                    id="loop-delay"
+                                    type="number"
+                                    min="0"
+                                    max="10"
+                                    step="0.5"
+                                    value={loopDelay}
+                                    onChange={(e) => setLoopDelay(parseFloat(e.target.value) || 0)}
+                                    className="h-6 text-xs px-2 w-16"
+                                  />
+                                  <span className="text-xs text-muted-foreground">s</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <p className="text-xs text-muted-foreground">
+                            Preview animation in signature below {animationLoop && `(Looping${loopDelay > 0 ? ` every ${loopDelay}s` : ' continuously'})`}
+                          </p>
+                        </div>
                       </div>
                     )}
                     {uploadingImage && <p className="text-xs sm:text-sm text-primary">Uploading cropped image...</p>}
