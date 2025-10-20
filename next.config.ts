@@ -16,7 +16,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  outputFileTracingRoot: path.resolve(__dirname, '../../'),
   
   // Production optimizations & code protection
   productionBrowserSourceMaps: false, // Disable source maps in production
