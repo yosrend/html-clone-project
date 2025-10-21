@@ -25,7 +25,7 @@ interface GifOptions {
 const DEFAULT_OPTIONS: GifOptions = {
   width: 200, // Increased from 150 for better quality
   height: 200, // Increased from 150 for better quality
-  duration: 2000,
+  duration: 4000, // 4 seconds for slower, more relaxed animation
   fps: 20,
   quality: 10, // Lower number = better quality (1-30 scale)
   repeat: 0, // infinite loop

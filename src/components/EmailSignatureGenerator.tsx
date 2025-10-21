@@ -1474,7 +1474,7 @@ export default function EmailSignatureGenerator() {
                             </Label>
                             
                             <div className="px-3 py-2 border rounded-md bg-background/50">
-                              <p className="text-sm font-medium">Float (Looping every 2s)</p>
+                              <p className="text-sm font-medium">Float (Looping every 4s)</p>
                               <p className="text-xs text-muted-foreground mt-1">
                                 Preview animation in signature below
                               </p>
@@ -1532,7 +1532,7 @@ export default function EmailSignatureGenerator() {
                             </Label>
                             
                             <div className="px-3 py-2 border rounded-md bg-background/50">
-                              <p className="text-sm font-medium">Float (Looping every 2s)</p>
+                              <p className="text-sm font-medium">Float (Looping every 4s)</p>
                               <p className="text-xs text-muted-foreground mt-1">
                                 Preview animation in signature below
                               </p>
