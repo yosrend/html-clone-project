@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
+import { createAnimatedGif, type AnimationType } from "@/lib/animationRenderer";
 
 interface FormData {
   name: string;
@@ -113,7 +114,8 @@ function generateEmailSignatureHtml(
   animationType: string = 'none',
   animationLoop: boolean = false,
   loopDelay: number = 0,
-  emailMode: boolean = true
+  animatedGifUrl: string | null = null,
+  isPreview: boolean = false
 ): string {
   const { name, title, userImage, linkedinUrl, instagramUrl, whatsappUrl } = formData;
 
@@ -132,7 +134,12 @@ function generateEmailSignatureHtml(
   const instagramIcon = "https://cloudfilesdm.com/postcards/fdaa7deebf8b194aec96c9d4d1069569.png";
   const whatsappIcon = "https://cloudfilesdm.com/postcards/3ccabb4eeded9b30912a1e04ea0ffadb.png";
   const bgIcon = "https://cloudfilesdm.com/postcards/bg-icon-ad50ac51.png";
-  const userImageUrl = userImage || displayImage || "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/document-uploads/Group-1773-1759278642509.png";
+  // Image URL logic:
+  // - Preview mode: Always use static image (CSS animation will be applied)
+  // - Copy mode: Use GIF if available, otherwise static image
+  const userImageUrl = isPreview 
+    ? (userImage || displayImage || "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/document-uploads/Group-1773-1759278642509.png")
+    : (animatedGifUrl || userImage || displayImage || "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/document-uploads/Group-1773-1759278642509.png");
 
   // Add toggles logic
   const enabledSocials: {url: string; icon: string}[] = [];
@@ -461,8 +468,10 @@ function generateEmailSignatureHtml(
   };
 
   // First style block - updated to 800px
+  // For preview: Include CSS animations so user can see the animation
+  // For copy: No CSS animations (using GIF instead for email compatibility)
   const style1 = `
-    ${emailMode ? '/* Animations disabled for email compatibility */' : getAnimationCSS(animationType, animationLoop, loopDelay)}
+    ${isPreview && animationType !== 'none' ? getAnimationCSS(animationType, animationLoop, loopDelay) : ''}
     
     html,
     body {
@@ -1034,12 +1043,17 @@ export default function EmailSignatureGenerator() {
   const [selectedAnimation, setSelectedAnimation] = useState<string>('none');
   const [animationLoop, setAnimationLoop] = useState(false);
   const [loopDelay, setLoopDelay] = useState(0);
-  const [emailMode, setEmailMode] = useState(true); // Strip animations for email compatibility
+  
+  // GIF generation state
+  const [isGeneratingGif, setIsGeneratingGif] = useState(false);
+  const [gifProgress, setGifProgress] = useState(0);
+  const [animatedGifUrl, setAnimatedGifUrl] = useState<string | null>(null);
 
+  // Generate preview HTML (with CSS animations for preview)
   useEffect(() => {
-    const html = generateEmailSignatureHtml(formData, displayImage, linkedinToggle, instagramToggle, whatsappToggle, selectedAnimation, animationLoop, loopDelay, emailMode);
+    const html = generateEmailSignatureHtml(formData, displayImage, linkedinToggle, instagramToggle, whatsappToggle, selectedAnimation, animationLoop, loopDelay, animatedGifUrl, true);
     setGeneratedHtml(html);
-  }, [formData, displayImage, linkedinToggle, instagramToggle, whatsappToggle, selectedAnimation, animationLoop, loopDelay, emailMode]);
+  }, [formData, displayImage, linkedinToggle, instagramToggle, whatsappToggle, selectedAnimation, animationLoop, loopDelay, animatedGifUrl]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
@@ -1197,13 +1211,102 @@ export default function EmailSignatureGenerator() {
     }
   };
 
-  const handleCopy = async () => {
-    let htmlToCopy: string;
+  const generateAnimatedGif = async () => {
+    if (!displayImage || selectedAnimation === 'none') return;
+    
+    setIsGeneratingGif(true);
+    setGifProgress(0);
+    
     try {
-      htmlToCopy = await getHtmlWithEmbeddedImage(generatedHtml, formData.userImage || displayImage);
+      sonnerToast.info("Generating animated GIF...", {
+        description: "This may take a few seconds",
+        duration: 3000
+      });
+      
+      // Generate GIF with high quality settings
+      const gifBlob = await createAnimatedGif(
+        displayImage,
+        selectedAnimation as AnimationType,
+        {
+          width: 200, // Higher resolution for better quality
+          height: 200,
+          duration: 2000,
+          fps: 20,
+          quality: 10, // Lower number = better quality
+          repeat: 0 // infinite loop
+        }
+      );
+      
+      setGifProgress(50);
+      
+      // Upload GIF to Vercel Blob
+      const formData = new FormData();
+      formData.append('file', gifBlob, `animated-${selectedAnimation}.gif`);
+      
+      const response = await fetch('/api/upload-image-vercel', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to upload GIF');
+      }
+      
+      const data = await response.json();
+      
+      if (data.imageUrl || data.url) {
+        const gifUrl = data.imageUrl || data.url;
+        setAnimatedGifUrl(gifUrl);
+        setGifProgress(100);
+        sonnerToast.success("Animated GIF generated!", {
+          description: "Your animation is ready for email"
+        });
+      } else {
+        console.error('Upload response:', data);
+        throw new Error('No URL returned from upload');
+      }
+      
     } catch (error) {
-      htmlToCopy = generatedHtml;
-      sonnerToast("Copied without embedded image. Use Download for offline viewing.");
+      console.error('GIF generation error:', error);
+      sonnerToast.error("Failed to generate GIF", {
+        description: error instanceof Error ? error.message : "Unknown error"
+      });
+      setAnimatedGifUrl(null);
+    } finally {
+      setIsGeneratingGif(false);
+      setTimeout(() => setGifProgress(0), 1000);
+    }
+  };
+
+  const handleCopy = async () => {
+    // Generate HTML for copy mode (without CSS animations, using GIF if available)
+    const copyHtml = generateEmailSignatureHtml(
+      formData, 
+      displayImage, 
+      linkedinToggle, 
+      instagramToggle, 
+      whatsappToggle, 
+      selectedAnimation, 
+      animationLoop, 
+      loopDelay, 
+      animatedGifUrl, 
+      false // isPreview = false for copy mode
+    );
+    
+    let htmlToCopy: string;
+    
+    // If using animated GIF, skip embed process (GIF URL is already public from Vercel Blob)
+    if (animatedGifUrl) {
+      htmlToCopy = copyHtml;
+      console.log('Using animated GIF URL:', animatedGifUrl);
+    } else {
+      // For static images, try to embed as base64
+      try {
+        htmlToCopy = await getHtmlWithEmbeddedImage(copyHtml, formData.userImage || displayImage);
+      } catch (error) {
+        htmlToCopy = copyHtml;
+        sonnerToast("Copied without embedded image. Use Download for offline viewing.");
+      }
     }
     if (htmlToCopy) {
       try {
@@ -1259,401 +1362,599 @@ export default function EmailSignatureGenerator() {
   };
 
   return (
-    <div className="w-full mx-auto p-2 sm:p-4 md:p-6 lg:p-8 max-w-4xl">
-      <div className="flex flex-col gap-4 lg:gap-8">
-        {/* Preview Section */}
-        <Card className="w-full shadow-none border-none">
-          <CardHeader className="pb-0 sm:pb-1 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-0 pt-8">
-            <CardTitle className="text-xl sm:text-2xl">Bistrochat Email Generator</CardTitle>
-            <ThemeToggle />
-          </CardHeader>
-          <CardContent className="px-0 py-2 sm:py-4">
-            <div className="flex justify-center">
-              <div
-                className="w-full h-auto rounded-md overflow-hidden mx-auto"
-                style={{ maxWidth: '800px' }}
-                dangerouslySetInnerHTML={{ __html: generatedHtml }} />
+    <div className="w-full mx-auto p-2 sm:p-4 md:p-6 lg:p-8">
+      {/* Two Column Layout: Preview Left (900px), Form Right (Flexible) */}
+      <div className="max-w-[1800px] mx-auto">
+        <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 lg:items-start">
+          
+          {/* LEFT COLUMN - Title + Preview Section (Fixed 900px) */}
+          <div className="w-full lg:w-[900px] lg:flex-shrink-0">
+            {/* Sticky Container - Title + Preview */}
+            <div className="lg:sticky lg:top-4 space-y-4">
+              {/* Title */}
+              <h1 className="text-2xl sm:text-3xl font-bold bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 py-2">
+                Bistrochat Email Generator
+              </h1>
+              
+              {/* Preview Card */}
+              <Card className="w-full shadow-lg">
+                <CardHeader className="pb-2 pt-6">
+                  <CardTitle className="text-lg sm:text-xl">Live Preview</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">
+                    See your signature update in real-time
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="px-2 py-4">
+                  <div className="w-full flex justify-center">
+                    <div
+                      className="w-full h-auto rounded-md overflow-hidden border border-border/50 bg-white dark:bg-gray-900"
+                      style={{ maxWidth: '800px' }}
+                      dangerouslySetInnerHTML={{ __html: generatedHtml }} />
+                  </div>
+                </CardContent>
+              </Card>
             </div>
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* Input Form Section */}
-        <Card className="w-full shadow-none border-none">
-          <CardHeader className="pb-1 sm:pb-2 pt-8 px-8">
-            <CardTitle className="text-xl sm:text-2xl">Enter Your Details</CardTitle>
-            <CardDescription className="text-sm sm:text-base mb-1">Fill in the form to generate your custom email signature.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4 px-8 py-2 sm:py-3 pb-8">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name" className="text-sm sm:text-base">Name (max 30 chars)</Label>
-                <Input
-                  id="name"
-                  type="text"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  maxLength={30}
-                  placeholder="Enter your name"
-                  className="text-base"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="title" className="text-sm sm:text-base">Job Title/Position (max 30 chars)</Label>
-                <Input
-                  id="title"
-                  type="text"
-                  value={formData.title}
-                  onChange={handleInputChange}
-                  maxLength={30}
-                  placeholder="Enter your job title"
-                  className="text-base"
-                />
-              </div>
-              
-              <div>
-                <Label className="text-lg font-semibold mb-3 sm:mb-4 block">Profile Image</Label>
-                <Separator className="my-3 sm:my-4" />
-                <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'url' | 'upload')} className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger
-                      value="upload"
-                      className="data-[state=active]:bg-black dark:data-[state=active]:bg-background data-[state=active]:text-white dark:data-[state=active]:text-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-ring dark:data-[state=active]:border-input dark:data-[state=active]:bg-input/30 text-foreground dark:text-muted-foreground inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-md border border-transparent px-2 py-1 font-medium whitespace-nowrap transition-[color,box-shadow] focus-visible:ring-[3px] focus-visible:outline-1 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:shadow-sm [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-')]]:size-4 text-xs sm:text-sm"
-                    >
-                      Upload
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="url"
-                      className="data-[state=active]:bg-black dark:data-[state=active]:bg-background data-[state=active]:text-white dark:data-[state=active]:text-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-ring dark:data-[state=active]:border-input dark:data-[state=active]:bg-input/30 text-foreground dark:text-muted-foreground inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-md border border-transparent px-2 py-1 font-medium whitespace-nowrap transition-[color,box-shadow] focus-visible:ring-[3px] focus-visible:outline-1 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:shadow-sm [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-')]]:size-4 text-xs sm:text-sm"
-                    >
-                      URL
-                    </TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="url" className="mt-3 sm:mt-4">
-                    <Input
-                      id="user-image"
-                      placeholder="Paste image URL here"
-                      value={formData.userImage}
-                      onChange={handleInputChange}
-                      className="text-base"
-                    />
-                  </TabsContent>
-                  <TabsContent value="upload" className="mt-3 sm:mt-4 space-y-3">
-                    <Input
-                      id="user-image-upload"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleFileSelect}
-                    />
-                    <p className="text-xs text-muted-foreground">Max file size: 5MB. Only images allowed.</p>
-                    {displayImage && (
-                      <div className="space-y-3">
-                        <div className="space-y-2">
-                          <p className="text-xs sm:text-sm text-muted-foreground">Current image</p>
-                          <img src={displayImage} alt="Preview" className="w-20 h-20 rounded-full object-cover block mx-auto mt-2" />
-                        </div>
-                        
-                        {/* Email Compatibility Warning */}
-                        <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md">
-                          <div className="flex items-start gap-2">
-                            <svg className="w-5 h-5 text-yellow-600 dark:text-yellow-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                            </svg>
-                            <div className="flex-1">
-                              <h4 className="text-xs font-semibold text-yellow-800 dark:text-yellow-400 mb-1">
-                                Email Client Compatibility
-                              </h4>
-                              <p className="text-xs text-yellow-700 dark:text-yellow-300/90 leading-relaxed">
-                                <strong>60-70% of email clients don't support CSS animations</strong> (Outlook, Gmail, Yahoo). 
-                                Enable "Email Mode" below to remove animations for maximum compatibility.
+          {/* RIGHT COLUMN - Input Form Section (Flexible Width) */}
+          <div className="w-full lg:flex-1">
+            <Card className="w-full shadow-lg h-full flex flex-col">
+              <CardHeader className="pb-1 sm:pb-2 pt-8 px-8 flex-shrink-0">
+                <CardTitle className="text-xl sm:text-2xl">Enter Your Details</CardTitle>
+                <CardDescription className="text-sm sm:text-base mb-1">Fill in the form to generate your custom email signature.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4 px-8 py-2 sm:py-3 pb-8 flex-1 overflow-y-auto">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name" className="text-sm sm:text-base">Name (max 30 chars)</Label>
+                  <Input
+                    id="name"
+                    type="text"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    maxLength={30}
+                    placeholder="Enter your name"
+                    className="text-base"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="title" className="text-sm sm:text-base">Job Title/Position (max 30 chars)</Label>
+                  <Input
+                    id="title"
+                    type="text"
+                    value={formData.title}
+                    onChange={handleInputChange}
+                    maxLength={30}
+                    placeholder="Enter your job title"
+                    className="text-base"
+                  />
+                </div>
+                
+                <div>
+                  <Label className="text-lg font-semibold mb-3 sm:mb-4 block">Profile Image</Label>
+                  <Separator className="my-3 sm:my-4" />
+                  <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'url' | 'upload')} className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger
+                        value="upload"
+                        className="data-[state=active]:bg-black dark:data-[state=active]:bg-background data-[state=active]:text-white dark:data-[state=active]:text-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-ring dark:data-[state=active]:border-input dark:data-[state=active]:bg-input/30 text-foreground dark:text-muted-foreground inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-md border border-transparent px-2 py-1 font-medium whitespace-nowrap transition-[color,box-shadow] focus-visible:ring-[3px] focus-visible:outline-1 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:shadow-sm [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-')]]:size-4 text-xs sm:text-sm"
+                      >
+                        Upload
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="url"
+                        className="data-[state=active]:bg-black dark:data-[state=active]:bg-background data-[state=active]:text-white dark:data-[state=active]:text-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-ring dark:data-[state=active]:border-input dark:data-[state=active]:bg-input/30 text-foreground dark:text-muted-foreground inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-md border border-transparent px-2 py-1 font-medium whitespace-nowrap transition-[color,box-shadow] focus-visible:ring-[3px] focus-visible:outline-1 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:shadow-sm [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-')]]:size-4 text-xs sm:text-sm"
+                      >
+                        URL
+                      </TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="url" className="mt-3 sm:mt-4 space-y-3">
+                      <Input
+                        id="user-image"
+                        placeholder="Paste image URL here"
+                        value={formData.userImage}
+                        onChange={handleInputChange}
+                        className="text-base"
+                      />
+                      
+                      {/* Show animation selector if URL is provided */}
+                      {formData.userImage && (
+                        <div>
+                          <div className="space-y-2">
+                            <p className="text-xs sm:text-sm text-muted-foreground">Current image</p>
+                            <img src={displayImage} alt="Preview" className="w-20 h-20 rounded-full object-cover block mx-auto mt-2" />
+                          </div>
+
+                          {/* Animation Selector */}
+                          <div className="space-y-2 pt-4 border-t mt-4">
+                            <Label className="flex items-center gap-2 text-xs sm:text-sm">
+                              <Sparkles className="w-4 h-4" />
+                              Image Animation
+                            </Label>
+                            
+                            <div className="flex gap-3">
+                              <div className="flex-[2]">
+                                <select
+                                  value={selectedAnimation}
+                                  onChange={(e) => setSelectedAnimation(e.target.value)}
+                                  className="w-full px-3 py-2 text-sm border rounded-md bg-background"
+                                >
+                                  <optgroup label="No Animation">
+                                    <option value="none">None</option>
+                                  </optgroup>
+                                  
+                                  <optgroup label="Entrance Animations">
+                                    <option value="fade">Fade In</option>
+                                    <option value="zoom">Zoom In</option>
+                                    <option value="slide-left">Slide from Left</option>
+                                    <option value="slide-right">Slide from Right</option>
+                                    <option value="slide-up">Slide from Bottom</option>
+                                    <option value="slide-down">Slide from Top</option>
+                                    <option value="rotate">Rotate In</option>
+                                    <option value="flip">Flip In</option>
+                                    <option value="roll">Roll In</option>
+                                  </optgroup>
+                                  
+                                  <optgroup label="Attention Seekers">
+                                    <option value="bounce">Bounce</option>
+                                    <option value="shake">Shake</option>
+                                    <option value="swing">Swing</option>
+                                    <option value="wobble">Wobble</option>
+                                    <option value="jello">Jello</option>
+                                    <option value="heartbeat">Heartbeat</option>
+                                    <option value="flash">Flash</option>
+                                    <option value="rubberband">Rubber Band</option>
+                                    <option value="tada">Tada</option>
+                                  </optgroup>
+                                  
+                                  <optgroup label="Continuous Animations">
+                                    <option value="float">Float</option>
+                                    <option value="pulse">Pulse</option>
+                                    <option value="spin">Spin</option>
+                                    <option value="ping">Ping</option>
+                                  </optgroup>
+                                  
+                                  <optgroup label="Special Effects">
+                                    <option value="pop">Pop</option>
+                                    <option value="glow">Glow</option>
+                                    <option value="blur-in">Blur In</option>
+                                  </optgroup>
+                                </select>
+                              </div>
+                              
+                              {/* Loop Toggle */}
+                              <div className="flex gap-2 px-3 py-2 border rounded-md bg-background">
+                                <Label htmlFor="animation-loop-url" className="text-xs cursor-pointer whitespace-nowrap">
+                                  Looping
+                                </Label>
+                                <Switch
+                                  id="animation-loop-url"
+                                  checked={animationLoop}
+                                  onCheckedChange={setAnimationLoop}
+                                  disabled={selectedAnimation === 'none'}
+                                />
+                                {animationLoop && (
+                                  <>
+                                    <Label htmlFor="loop-delay-url" className="text-xs text-muted-foreground whitespace-nowrap ml-4">
+                                      Looping Time
+                                    </Label>
+                                    <Input
+                                      id="loop-delay-url"
+                                      type="number"
+                                      min="0"
+                                      max="10"
+                                      step="0.5"
+                                      value={loopDelay}
+                                      onChange={(e) => setLoopDelay(parseFloat(e.target.value) || 0)}
+                                      className="h-6 text-xs px-2 w-16"
+                                    />
+                                    <span className="text-xs text-muted-foreground">s</span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                            
+                            <p className="text-xs text-muted-foreground">
+                              Preview animation in signature below {animationLoop && `(Looping${loopDelay > 0 ? ` every ${loopDelay}s` : ' continuously'})`}
+                            </p>
+
+                            {/* Convert to Animated GIF Button */}
+                            <div className="mt-3">
+                              <Button
+                                onClick={generateAnimatedGif}
+                                disabled={isGeneratingGif || !displayImage || selectedAnimation === 'none'}
+                                className="w-full"
+                                variant="default"
+                                size="sm"
+                              >
+                                {isGeneratingGif ? (
+                                  <>
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                    Converting to GIF...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Sparkles className="w-4 h-4 mr-2" />
+                                    Convert Image to Animation
+                                  </>
+                                )}
+                              </Button>
+                              <p className="text-xs text-muted-foreground mt-2 text-center">
+                                {selectedAnimation === 'none' 
+                                  ? 'No animation selected - will use static image'
+                                  : 'Creates animated GIF that works in all email clients'}
                               </p>
                             </div>
                           </div>
                         </div>
+                      )}
+                    </TabsContent>
+                    <TabsContent value="upload" className="mt-3 sm:mt-4 space-y-3">
+                      <Input
+                        id="user-image-upload"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileSelect}
+                      />
+                      <p className="text-xs text-muted-foreground">Max file size: 5MB. Only images allowed.</p>
+                      {displayImage && (
+                        <div className="space-y-3">
+                          <div className="space-y-2">
+                            <p className="text-xs sm:text-sm text-muted-foreground">Current image</p>
+                            <img src={displayImage} alt="Preview" className="w-20 h-20 rounded-full object-cover block mx-auto mt-2" />
+                          </div>
 
-                        {/* Animation Selector */}
-                        <div className="space-y-2 pt-2 border-t">
-                          <Label className="flex items-center gap-2 text-xs sm:text-sm">
-                            <Sparkles className="w-4 h-4" />
-                            Image Animation {!emailMode && <span className="text-xs text-muted-foreground">(Preview Only)</span>}
-                          </Label>
-                          
-                          <div className="flex gap-3">
-                            <div className="flex-[2]">
-                              <select
-                                value={selectedAnimation}
-                                onChange={(e) => setSelectedAnimation(e.target.value)}
-                                className="w-full px-3 py-2 text-sm border rounded-md bg-background"
-                              >
-                                <optgroup label="No Animation">
-                                  <option value="none">None</option>
-                                </optgroup>
-                                
-                                <optgroup label="Entrance Animations">
-                                  <option value="fade">Fade In</option>
-                                  <option value="zoom">Zoom In</option>
-                                  <option value="slide-left">Slide from Left</option>
-                                  <option value="slide-right">Slide from Right</option>
-                                  <option value="slide-up">Slide from Bottom</option>
-                                  <option value="slide-down">Slide from Top</option>
-                                  <option value="rotate">Rotate In</option>
-                                  <option value="flip">Flip In</option>
-                                  <option value="roll">Roll In</option>
-                                </optgroup>
-                                
-                                <optgroup label="Attention Seekers">
-                                  <option value="bounce">Bounce</option>
-                                  <option value="shake">Shake</option>
-                                  <option value="swing">Swing</option>
-                                  <option value="wobble">Wobble</option>
-                                  <option value="jello">Jello</option>
-                                  <option value="heartbeat">Heartbeat</option>
-                                  <option value="flash">Flash</option>
-                                  <option value="rubberband">Rubber Band</option>
-                                  <option value="tada">Tada</option>
-                                </optgroup>
-                                
-                                <optgroup label="Continuous Animations">
-                                  <option value="float">Float</option>
-                                  <option value="pulse">Pulse</option>
-                                  <option value="spin">Spin</option>
-                                  <option value="ping">Ping</option>
-                                </optgroup>
-                                
-                                <optgroup label="Special Effects">
-                                  <option value="pop">Pop</option>
-                                  <option value="glow">Glow</option>
-                                  <option value="blur-in">Blur In</option>
-                                </optgroup>
-                              </select>
+                          {/* Animation Selector */}
+                          <div className="space-y-2 pt-4 border-t mt-4">
+                            <Label className="flex items-center gap-2 text-xs sm:text-sm">
+                              <Sparkles className="w-4 h-4" />
+                              Image Animation
+                            </Label>
+                            
+                            <div className="flex gap-3">
+                              <div className="flex-[2]">
+                                <select
+                                  value={selectedAnimation}
+                                  onChange={(e) => setSelectedAnimation(e.target.value)}
+                                  className="w-full px-3 py-2 text-sm border rounded-md bg-background"
+                                >
+                                  <optgroup label="No Animation">
+                                    <option value="none">None</option>
+                                  </optgroup>
+                                  
+                                  <optgroup label="Entrance Animations">
+                                    <option value="fade">Fade In</option>
+                                    <option value="zoom">Zoom In</option>
+                                    <option value="slide-left">Slide from Left</option>
+                                    <option value="slide-right">Slide from Right</option>
+                                    <option value="slide-up">Slide from Bottom</option>
+                                    <option value="slide-down">Slide from Top</option>
+                                    <option value="rotate">Rotate In</option>
+                                    <option value="flip">Flip In</option>
+                                    <option value="roll">Roll In</option>
+                                  </optgroup>
+                                  
+                                  <optgroup label="Attention Seekers">
+                                    <option value="bounce">Bounce</option>
+                                    <option value="shake">Shake</option>
+                                    <option value="swing">Swing</option>
+                                    <option value="wobble">Wobble</option>
+                                    <option value="jello">Jello</option>
+                                    <option value="heartbeat">Heartbeat</option>
+                                    <option value="flash">Flash</option>
+                                    <option value="rubberband">Rubber Band</option>
+                                    <option value="tada">Tada</option>
+                                  </optgroup>
+                                  
+                                  <optgroup label="Continuous Animations">
+                                    <option value="float">Float</option>
+                                    <option value="pulse">Pulse</option>
+                                    <option value="spin">Spin</option>
+                                    <option value="ping">Ping</option>
+                                  </optgroup>
+                                  
+                                  <optgroup label="Special Effects">
+                                    <option value="pop">Pop</option>
+                                    <option value="glow">Glow</option>
+                                    <option value="blur-in">Blur In</option>
+                                  </optgroup>
+                                </select>
+                              </div>
+                              
+                              {/* Loop Toggle */}
+                              <div className="flex gap-2 px-3 py-2 border rounded-md bg-background">
+                                <Label htmlFor="animation-loop" className="text-xs cursor-pointer whitespace-nowrap">
+                                  Looping
+                                </Label>
+                                <Switch
+                                  id="animation-loop"
+                                  checked={animationLoop}
+                                  onCheckedChange={setAnimationLoop}
+                                  disabled={selectedAnimation === 'none'}
+                                />
+                                {animationLoop && (
+                                  <>
+                                    <Label htmlFor="loop-delay" className="text-xs text-muted-foreground whitespace-nowrap ml-4">
+                                      Looping Time
+                                    </Label>
+                                    <Input
+                                      id="loop-delay"
+                                      type="number"
+                                      min="0"
+                                      max="10"
+                                      step="0.5"
+                                      value={loopDelay}
+                                      onChange={(e) => setLoopDelay(parseFloat(e.target.value) || 0)}
+                                      className="h-6 text-xs px-2 w-16"
+                                    />
+                                    <span className="text-xs text-muted-foreground">s</span>
+                                  </>
+                                )}
+                              </div>
                             </div>
                             
-                            {/* Loop Toggle */}
-                            <div className="flex gap-2 px-3 py-2 border rounded-md bg-background">
-                              <Label htmlFor="animation-loop" className="text-xs cursor-pointer whitespace-nowrap">
-                                Looping
-                              </Label>
-                              <Switch
-                                id="animation-loop"
-                                checked={animationLoop}
-                                onCheckedChange={setAnimationLoop}
-                                disabled={selectedAnimation === 'none'}
-                              />
-                              {animationLoop && (
-                                <>
-                                  <Label htmlFor="loop-delay" className="text-xs text-muted-foreground whitespace-nowrap ml-4">
-                                    Looping Time
-                                  </Label>
-                                  <Input
-                                    id="loop-delay"
-                                    type="number"
-                                    min="0"
-                                    max="10"
-                                    step="0.5"
-                                    value={loopDelay}
-                                    onChange={(e) => setLoopDelay(parseFloat(e.target.value) || 0)}
-                                    className="h-6 text-xs px-2 w-16"
-                                  />
-                                  <span className="text-xs text-muted-foreground">s</span>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                          
-                          <p className="text-xs text-muted-foreground">
-                            Preview animation in signature below {animationLoop && `(Looping${loopDelay > 0 ? ` every ${loopDelay}s` : ' continuously'})`}
-                          </p>
+                            <p className="text-xs text-muted-foreground">
+                              Preview animation in signature below {animationLoop && `(Looping${loopDelay > 0 ? ` every ${loopDelay}s` : ' continuously'})`}
+                            </p>
 
-                          {/* Email Mode Toggle */}
-                          <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
-                            <div className="flex items-center justify-between gap-3">
-                              <div className="flex-1">
-                                <Label htmlFor="email-mode" className="text-sm font-semibold text-blue-900 dark:text-blue-300 cursor-pointer">
-                                  Email Mode
-                                </Label>
-                                <p className="text-xs text-blue-700 dark:text-blue-400 mt-0.5">
-                                  {emailMode 
-                                    ? "Animations removed from HTML export (100% email compatible)" 
-                                    : "Animations included (works in Apple Mail, Thunderbird only)"}
-                                </p>
-                              </div>
-                              <Switch
-                                id="email-mode"
-                                checked={emailMode}
-                                onCheckedChange={setEmailMode}
-                              />
+                            {/* Convert to Animated GIF Button */}
+                            <div className="mt-3">
+                              <Button
+                                onClick={generateAnimatedGif}
+                                disabled={isGeneratingGif || !displayImage || selectedAnimation === 'none'}
+                                className="w-full"
+                                variant="default"
+                                size="sm"
+                              >
+                                {isGeneratingGif ? (
+                                  <>
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                    Converting to GIF...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Sparkles className="w-4 h-4 mr-2" />
+                                    Convert Image to Animation
+                                  </>
+                                )}
+                              </Button>
+                              <p className="text-xs text-muted-foreground mt-2 text-center">
+                                {selectedAnimation === 'none' 
+                                  ? 'No animation selected - will use static image'
+                                  : 'Creates animated GIF that works in all email clients'}
+                              </p>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    )}
-                    {uploadingImage && <p className="text-xs sm:text-sm text-primary">Uploading cropped image...</p>}
-                  </TabsContent>
-                </Tabs>
-
-                <Dialog open={showCropper} onOpenChange={(open) => {
-                  setShowCropper(open);
-                  if (!open && imageSrc) {
-                    URL.revokeObjectURL(imageSrc);
-                    setImageSrc('');
-                    setCroppedAreaPixels(null);
-                  }
-                }}>
-                  <DialogContent className="max-w-2xl w-full max-h-[90vh] sm:max-w-4xl">
-                    <DialogHeader>
-                      <DialogTitle>Crop Your Profile Image to Circle</DialogTitle>
-                      <DialogDescription>
-                        Adjust the crop area to select a perfect circular profile image (1:1 ratio).
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="relative h-96 w-full">
-                      {imageSrc && (
-                        <Cropper
-                          image={imageSrc}
-                          crop={crop}
-                          zoom={zoom}
-                          aspect={1}
-                          cropShape="round"
-                          showGrid={false}
-                          onCropChange={setCrop}
-                          onCropComplete={onCropComplete}
-                          onZoomChange={setZoom}
-                          objectFit="contain"
-                        />
                       )}
-                    </div>
+                      {uploadingImage && <p className="text-xs sm:text-sm text-primary">Uploading cropped image...</p>}
+                    </TabsContent>
+                  </Tabs>
 
-                    <div className="flex items-center justify-center space-x-2 mt-4 mb-4">
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setZoom(prev => Math.max(1, prev - 0.1))}
-                      >
-                        Zoom Out
-                      </Button>
-                      <Slider
-                        value={[zoom]}
-                        onValueChange={(value) => setZoom(value[0])}
-                        min={1}
-                        max={3}
-                        step={0.1}
-                        className="w-48"
+                  <Dialog open={showCropper} onOpenChange={(open) => {
+                    setShowCropper(open);
+                    if (!open && imageSrc) {
+                      URL.revokeObjectURL(imageSrc);
+                      setImageSrc('');
+                      setCroppedAreaPixels(null);
+                    }
+                  }}>
+                    <DialogContent className="max-w-2xl w-full max-h-[90vh] sm:max-w-4xl">
+                      <DialogHeader>
+                        <DialogTitle>Crop Your Profile Image to Circle</DialogTitle>
+                        <DialogDescription>
+                          Adjust the crop area to select a perfect circular profile image (1:1 ratio).
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="relative h-96 w-full">
+                        {imageSrc && (
+                          <Cropper
+                            image={imageSrc}
+                            crop={crop}
+                            zoom={zoom}
+                            aspect={1}
+                            cropShape="round"
+                            showGrid={false}
+                            onCropChange={setCrop}
+                            onCropComplete={onCropComplete}
+                            onZoomChange={setZoom}
+                            objectFit="contain"
+                          />
+                        )}
+                      </div>
+
+                      <div className="flex items-center justify-center space-x-2 mt-4 mb-4">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setZoom(prev => Math.max(1, prev - 0.1))}
+                        >
+                          Zoom Out
+                        </Button>
+                        <Slider
+                          value={[zoom]}
+                          onValueChange={(value) => setZoom(value[0])}
+                          min={1}
+                          max={3}
+                          step={0.1}
+                          className="w-48"
+                        />
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setZoom(prev => Math.min(3, prev + 0.1))}
+                        >
+                          Zoom In
+                        </Button>
+                      </div>
+                      <DialogFooter className="flex justify-end space-x-2 pt-4">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            setShowCropper(false);
+                            if (imageSrc) URL.revokeObjectURL(imageSrc);
+                            setImageSrc('');
+                            setCroppedAreaPixels(null);
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          type="button"
+                          onClick={handleApplyCrop}
+                          disabled={!croppedAreaPixels || uploadingImage}
+                        >
+                          {uploadingImage ? "Uploading..." : "Apply Crop & Upload"}
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+                
+                <Separator className="my-3 sm:my-4" />
+                
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="linkedin-url" className="text-sm sm:text-base">LinkedIn Profile URL</Label>
+                    <div className="flex items-center space-x-2">
+                      <Input
+                        id="linkedin-url"
+                        type="url"
+                        value={formData.linkedinUrl}
+                        onChange={handleInputChange}
+                        placeholder="https://linkedin.com/in/username"
+                        className="flex-1 text-base"
                       />
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setZoom(prev => Math.min(3, prev + 0.1))}
-                      >
-                        Zoom In
-                      </Button>
+                      <Switch
+                        checked={linkedinToggle}
+                        onCheckedChange={setLinkedinToggle}
+                      />
                     </div>
-                    <DialogFooter className="flex justify-end space-x-2 pt-4">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => {
-                          setShowCropper(false);
-                          if (imageSrc) URL.revokeObjectURL(imageSrc);
-                          setImageSrc('');
-                          setCroppedAreaPixels(null);
-                        }}
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        type="button"
-                        onClick={handleApplyCrop}
-                        disabled={!croppedAreaPixels || uploadingImage}
-                      >
-                        {uploadingImage ? "Uploading..." : "Apply Crop & Upload"}
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
-              </div>
-              
-              <Separator className="my-3 sm:my-4" />
-              
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="linkedin-url" className="text-sm sm:text-base">LinkedIn Profile URL</Label>
-                  <div className="flex items-center space-x-2">
-                    <Input
-                      id="linkedin-url"
-                      type="url"
-                      value={formData.linkedinUrl}
-                      onChange={handleInputChange}
-                      placeholder="https://linkedin.com/in/username"
-                      className="flex-1 text-base"
-                    />
-                    <Switch
-                      checked={linkedinToggle}
-                      onCheckedChange={setLinkedinToggle}
-                    />
                   </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="instagram-url" className="text-sm sm:text-base">Instagram Profile URL</Label>
-                  <div className="flex items-center space-x-2">
-                    <Input
-                      id="instagram-url"
-                      type="url"
-                      value={formData.instagramUrl}
-                      onChange={handleInputChange}
-                      onBlur={handleInstagramBlur}
-                      placeholder="https://instagram.com/username"
-                      className="flex-1 text-base"
-                    />
-                    <Switch
-                      checked={instagramToggle}
-                      onCheckedChange={setInstagramToggle}
-                    />
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="instagram-url" className="text-sm sm:text-base">Instagram Profile URL</Label>
+                    <div className="flex items-center space-x-2">
+                      <Input
+                        id="instagram-url"
+                        type="url"
+                        value={formData.instagramUrl}
+                        onChange={handleInputChange}
+                        onBlur={handleInstagramBlur}
+                        placeholder="https://instagram.com/username"
+                        className="flex-1 text-base"
+                      />
+                      <Switch
+                        checked={instagramToggle}
+                        onCheckedChange={setInstagramToggle}
+                      />
+                    </div>
                   </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="whatsapp-url" className="text-sm sm:text-base">WhatsApp URL</Label>
-                  <div className="flex items-center space-x-2">
-                    <Input
-                      id="whatsapp-url"
-                      type="url"
-                      value={formData.whatsappUrl}
-                      onChange={handleInputChange}
-                      placeholder="https://wa.me/phone"
-                      className="flex-1 text-base"
-                    />
-                    <Switch
-                      checked={whatsappToggle}
-                      onCheckedChange={setWhatsappToggle}
-                    />
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="whatsapp-url" className="text-sm sm:text-base">WhatsApp URL</Label>
+                    <div className="flex items-center space-x-2">
+                      <Input
+                        id="whatsapp-url"
+                        type="url"
+                        value={formData.whatsappUrl}
+                        onChange={handleInputChange}
+                        placeholder="https://wa.me/phone"
+                        className="flex-1 text-base"
+                      />
+                      <Switch
+                        checked={whatsappToggle}
+                        onCheckedChange={setWhatsappToggle}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <div className="space-y-3">
-              <Button
-                onClick={handleCopy}
-                className="w-full disabled:opacity-50 disabled:cursor-not-allowed text-base py-3"
-                variant={copied ? "default" : "default"}
-                disabled={!generatedHtml || copied}
-              >
-                {copied ? (
-                  <>
-                    <Check className="w-4 h-4 mr-2" />
-                    Copied!
-                  </>
-                ) : (
-                  'Copy HTML Code'
+              <div className="space-y-3">
+                {/* GIF Generation Progress */}
+                {isGeneratingGif && (
+                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-blue-900 dark:text-blue-300">
+                          Converting animation to GIF...
+                        </p>
+                        <p className="text-xs text-blue-700 dark:text-blue-400">
+                          {gifProgress}% - This may take a few seconds
+                        </p>
+                      </div>
+                    </div>
+                    <div className="w-full bg-blue-200 dark:bg-blue-900 rounded-full h-2 overflow-hidden">
+                      <div 
+                        className="bg-blue-600 h-2 transition-all duration-300 ease-out"
+                        style={{ width: `${gifProgress}%` }}
+                      />
+                    </div>
+                  </div>
                 )}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+
+                {/* Success Message */}
+                {!isGeneratingGif && animatedGifUrl && selectedAnimation !== 'none' && (
+                  <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md">
+                    <div className="flex items-start gap-2">
+                      <svg className="w-5 h-5 text-green-600 dark:text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <div className="flex-1">
+                        <p className="text-xs font-semibold text-green-800 dark:text-green-400">
+                          Animated GIF Ready!
+                        </p>
+                        <p className="text-xs text-green-700 dark:text-green-300/90">
+                          Your signature now uses an animated GIF that works in all email clients (Outlook, Gmail, Yahoo).
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <Button
+                  onClick={handleCopy}
+                  className="w-full disabled:opacity-50 disabled:cursor-not-allowed text-base py-3"
+                  variant={copied ? "default" : "default"}
+                  disabled={!generatedHtml || copied || isGeneratingGif || (selectedAnimation !== 'none' && !animatedGifUrl)}
+                >
+                  {copied ? (
+                    <>
+                      <Check className="w-4 h-4 mr-2" />
+                      Copied!
+                    </>
+                  ) : isGeneratingGif ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Generating GIF...
+                    </>
+                  ) : (
+                    'Copy HTML Code'
+                  )}
+                </Button>
+                
+                {/* Helper text when conversion needed */}
+                {selectedAnimation !== 'none' && !animatedGifUrl && !isGeneratingGif && (
+                  <p className="text-xs text-center text-muted-foreground mt-2">
+                    ⚠️ Please convert animation to GIF first before copying
+                  </p>
+                )}
+              </div>
+              </CardContent>
+            </Card>
+          </div>
+          {/* End Right Column */}
+
+        </div>
+        {/* End Two Column Layout */}
       </div>
+      {/* End Container */}
     </div>
   );
 }

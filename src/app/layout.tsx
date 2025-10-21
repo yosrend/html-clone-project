@@ -34,7 +34,6 @@ export default function RootLayout({
         <CodeProtection />
         <ThemeProvider>
           {children}
-          <ThemeToggle />
         </ThemeProvider>
         <Toaster />
       </body>

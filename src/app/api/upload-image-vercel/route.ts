@@ -29,13 +29,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Upload ke Vercel Blob dengan resize otomatis
-    const result = await uploadImage(file, {
-      width: 400,
-      height: 400,
-      fit: 'cover',
-      quality: 85,
-    });
+    // Upload ke Vercel Blob
+    // Skip resize for GIFs (already optimized, resizing breaks animation)
+    const result = file.type === 'image/gif' 
+      ? await uploadImage(file) // No resize for GIFs
+      : await uploadImage(file, {
+          width: 400,
+          height: 400,
+          fit: 'cover',
+          quality: 85,
+        });
 
     return NextResponse.json({
       success: true,
