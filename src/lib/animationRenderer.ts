@@ -61,17 +61,18 @@ export async function createAnimatedGif(
     throw new Error('Failed to get canvas context');
   }
 
-  // Set high quality rendering
+  // Set high quality rendering for crisp, clean edges
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
 
-  // Initialize GIF encoder
+  // Initialize GIF encoder with transparency
   const gif = new GIF({
     workers: 2,
     quality: opts.quality,
     width: opts.width,
     height: opts.height,
     repeat: opts.repeat,
+    transparent: 0x000000, // Enable transparency (black = transparent)
     workerScript: '/gif.worker.js',
   });
 
@@ -82,14 +83,14 @@ export async function createAnimatedGif(
   for (let i = 0; i < frameCount; i++) {
     const progress = i / frameCount;
     
-    // Clear canvas
+    // Clear canvas - transparent background
     ctx.clearRect(0, 0, opts.width, opts.height);
     
-    // Render animation frame
+    // Render animation frame (only circular image, no background fill)
     renderAnimationFrame(ctx, img, animation, progress, opts.width, opts.height);
     
-    // Add frame to GIF
-    gif.addFrame(ctx, { delay: frameDelay, copy: true });
+    // Add frame to GIF with transparency
+    gif.addFrame(ctx, { delay: frameDelay, copy: true, transparent: true });
   }
 
   // Render GIF and return blob
@@ -135,7 +136,35 @@ function renderAnimationFrame(
   const centerX = width / 2;
   const centerY = height / 2;
   
-  // Make image circular (clip to circle)
+  // Special handling for float animation - move circle position, not content
+  if (animation === 'float') {
+    const floatHeight = 15;
+    const offsetY = Math.sin(progress * Math.PI * 2) * floatHeight;
+    
+    // Use smaller radius to ensure circle stays within canvas bounds during float
+    const radius = Math.min(width, height) / 2 - floatHeight;
+    
+    ctx.save();
+    
+    ctx.beginPath();
+    // Circle moves up and down within canvas bounds
+    ctx.arc(centerX, centerY + offsetY, radius, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.clip();
+    
+    // Scale and position image to fit the smaller circle
+    const scale = radius * 2 / Math.min(width, height);
+    const scaledSize = Math.min(width, height) * scale;
+    const imgX = (width - scaledSize) / 2;
+    const imgY = (height - scaledSize) / 2 + offsetY;
+    
+    ctx.drawImage(img, imgX, imgY, scaledSize, scaledSize);
+    
+    ctx.restore();
+    return;
+  }
+  
+  // For other animations, apply circular clip first
   ctx.save();
   ctx.beginPath();
   ctx.arc(centerX, centerY, Math.min(width, height) / 2, 0, Math.PI * 2);
@@ -385,14 +414,6 @@ function renderAnimationFrame(
       ctx.translate(centerX + offsetX, centerY);
       ctx.rotate(angle);
       ctx.drawImage(img, -centerX, -centerY, width, height);
-      break;
-    }
-
-    case 'float': {
-      const floatHeight = 15;
-      const offsetY = Math.sin(progress * Math.PI * 2) * floatHeight;
-      ctx.translate(0, offsetY);
-      ctx.drawImage(img, 0, 0, width, height);
       break;
     }
 
