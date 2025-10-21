@@ -1042,7 +1042,7 @@ export default function EmailSignatureGenerator() {
   const [whatsappToggle, setWhatsappToggle] = useState(true);
   const [selectedAnimation, setSelectedAnimation] = useState<string>('float');
   const [animationLoop, setAnimationLoop] = useState(true);
-  const [loopDelay, setLoopDelay] = useState(2);
+  const [loopDelay, setLoopDelay] = useState(4); // 4 seconds for slower animation
   
   // GIF generation state
   const [isGeneratingGif, setIsGeneratingGif] = useState(false);
@@ -1230,7 +1230,7 @@ export default function EmailSignatureGenerator() {
         {
           width: 200, // Higher resolution for better quality
           height: 200,
-          duration: 2000,
+          duration: 4000, // 4 seconds for slower, more relaxed animation
           fps: 20,
           quality: 10, // Lower number = better quality
           repeat: 0 // infinite loop
