@@ -126,7 +126,7 @@ function generateEmailSignatureHtml(
 
   const aiSystemText = "Ai Restaurant Reservation System";
   const quoteLine1 = "“unleash ";
-  const quoteLine2 = "your iconic ";
+  const quoteLine2 = "iconic ";
   const quoteLine3 = "hospitality”";
 
   const qrCodeImage = "https://cloudfilesdm.com/postcards/qr-code_-web1-ff4d12fd.png";
@@ -1040,9 +1040,9 @@ export default function EmailSignatureGenerator() {
   const [linkedinToggle, setLinkedinToggle] = useState(true);
   const [instagramToggle, setInstagramToggle] = useState(true);
   const [whatsappToggle, setWhatsappToggle] = useState(true);
-  const [selectedAnimation, setSelectedAnimation] = useState<string>('none');
-  const [animationLoop, setAnimationLoop] = useState(false);
-  const [loopDelay, setLoopDelay] = useState(0);
+  const [selectedAnimation, setSelectedAnimation] = useState<string>('float');
+  const [animationLoop, setAnimationLoop] = useState(true);
+  const [loopDelay, setLoopDelay] = useState(2);
   
   // GIF generation state
   const [isGeneratingGif, setIsGeneratingGif] = useState(false);
@@ -1373,7 +1373,7 @@ export default function EmailSignatureGenerator() {
             <div className="lg:sticky lg:top-4 space-y-4">
               {/* Title */}
               <h1 className="text-2xl sm:text-3xl font-bold bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 py-2">
-                Bistrochat Email Generator
+                Bistrochat Email Signature
               </h1>
               
               {/* Preview Card */}
@@ -1466,104 +1466,25 @@ export default function EmailSignatureGenerator() {
                             <img src={displayImage} alt="Preview" className="w-20 h-20 rounded-full object-cover block mx-auto mt-2" />
                           </div>
 
-                          {/* Animation Selector */}
+                          {/* Animation Info */}
                           <div className="space-y-2 pt-4 border-t mt-4">
                             <Label className="flex items-center gap-2 text-xs sm:text-sm">
                               <Sparkles className="w-4 h-4" />
                               Image Animation
                             </Label>
                             
-                            <div className="flex gap-3">
-                              <div className="flex-[2]">
-                                <select
-                                  value={selectedAnimation}
-                                  onChange={(e) => setSelectedAnimation(e.target.value)}
-                                  className="w-full px-3 py-2 text-sm border rounded-md bg-background"
-                                >
-                                  <optgroup label="No Animation">
-                                    <option value="none">None</option>
-                                  </optgroup>
-                                  
-                                  <optgroup label="Entrance Animations">
-                                    <option value="fade">Fade In</option>
-                                    <option value="zoom">Zoom In</option>
-                                    <option value="slide-left">Slide from Left</option>
-                                    <option value="slide-right">Slide from Right</option>
-                                    <option value="slide-up">Slide from Bottom</option>
-                                    <option value="slide-down">Slide from Top</option>
-                                    <option value="rotate">Rotate In</option>
-                                    <option value="flip">Flip In</option>
-                                    <option value="roll">Roll In</option>
-                                  </optgroup>
-                                  
-                                  <optgroup label="Attention Seekers">
-                                    <option value="bounce">Bounce</option>
-                                    <option value="shake">Shake</option>
-                                    <option value="swing">Swing</option>
-                                    <option value="wobble">Wobble</option>
-                                    <option value="jello">Jello</option>
-                                    <option value="heartbeat">Heartbeat</option>
-                                    <option value="flash">Flash</option>
-                                    <option value="rubberband">Rubber Band</option>
-                                    <option value="tada">Tada</option>
-                                  </optgroup>
-                                  
-                                  <optgroup label="Continuous Animations">
-                                    <option value="float">Float</option>
-                                    <option value="pulse">Pulse</option>
-                                    <option value="spin">Spin</option>
-                                    <option value="ping">Ping</option>
-                                  </optgroup>
-                                  
-                                  <optgroup label="Special Effects">
-                                    <option value="pop">Pop</option>
-                                    <option value="glow">Glow</option>
-                                    <option value="blur-in">Blur In</option>
-                                  </optgroup>
-                                </select>
-                              </div>
-                              
-                              {/* Loop Toggle */}
-                              <div className="flex gap-2 px-3 py-2 border rounded-md bg-background">
-                                <Label htmlFor="animation-loop-url" className="text-xs cursor-pointer whitespace-nowrap">
-                                  Looping
-                                </Label>
-                                <Switch
-                                  id="animation-loop-url"
-                                  checked={animationLoop}
-                                  onCheckedChange={setAnimationLoop}
-                                  disabled={selectedAnimation === 'none'}
-                                />
-                                {animationLoop && (
-                                  <>
-                                    <Label htmlFor="loop-delay-url" className="text-xs text-muted-foreground whitespace-nowrap ml-4">
-                                      Looping Time
-                                    </Label>
-                                    <Input
-                                      id="loop-delay-url"
-                                      type="number"
-                                      min="0"
-                                      max="10"
-                                      step="0.5"
-                                      value={loopDelay}
-                                      onChange={(e) => setLoopDelay(parseFloat(e.target.value) || 0)}
-                                      className="h-6 text-xs px-2 w-16"
-                                    />
-                                    <span className="text-xs text-muted-foreground">s</span>
-                                  </>
-                                )}
-                              </div>
+                            <div className="px-3 py-2 border rounded-md bg-background/50">
+                              <p className="text-sm font-medium">Float (Looping every 2s)</p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Preview animation in signature below
+                              </p>
                             </div>
-                            
-                            <p className="text-xs text-muted-foreground">
-                              Preview animation in signature below {animationLoop && `(Looping${loopDelay > 0 ? ` every ${loopDelay}s` : ' continuously'})`}
-                            </p>
 
                             {/* Convert to Animated GIF Button */}
                             <div className="mt-3">
                               <Button
                                 onClick={generateAnimatedGif}
-                                disabled={isGeneratingGif || !displayImage || selectedAnimation === 'none'}
+                                disabled={isGeneratingGif || !displayImage}
                                 className="w-full"
                                 variant="default"
                                 size="sm"
@@ -1581,9 +1502,7 @@ export default function EmailSignatureGenerator() {
                                 )}
                               </Button>
                               <p className="text-xs text-muted-foreground mt-2 text-center">
-                                {selectedAnimation === 'none' 
-                                  ? 'No animation selected - will use static image'
-                                  : 'Creates animated GIF that works in all email clients'}
+                                Creates animated GIF that works in all email clients
                               </p>
                             </div>
                           </div>
@@ -1605,104 +1524,25 @@ export default function EmailSignatureGenerator() {
                             <img src={displayImage} alt="Preview" className="w-20 h-20 rounded-full object-cover block mx-auto mt-2" />
                           </div>
 
-                          {/* Animation Selector */}
+                          {/* Animation Info */}
                           <div className="space-y-2 pt-4 border-t mt-4">
                             <Label className="flex items-center gap-2 text-xs sm:text-sm">
                               <Sparkles className="w-4 h-4" />
                               Image Animation
                             </Label>
                             
-                            <div className="flex gap-3">
-                              <div className="flex-[2]">
-                                <select
-                                  value={selectedAnimation}
-                                  onChange={(e) => setSelectedAnimation(e.target.value)}
-                                  className="w-full px-3 py-2 text-sm border rounded-md bg-background"
-                                >
-                                  <optgroup label="No Animation">
-                                    <option value="none">None</option>
-                                  </optgroup>
-                                  
-                                  <optgroup label="Entrance Animations">
-                                    <option value="fade">Fade In</option>
-                                    <option value="zoom">Zoom In</option>
-                                    <option value="slide-left">Slide from Left</option>
-                                    <option value="slide-right">Slide from Right</option>
-                                    <option value="slide-up">Slide from Bottom</option>
-                                    <option value="slide-down">Slide from Top</option>
-                                    <option value="rotate">Rotate In</option>
-                                    <option value="flip">Flip In</option>
-                                    <option value="roll">Roll In</option>
-                                  </optgroup>
-                                  
-                                  <optgroup label="Attention Seekers">
-                                    <option value="bounce">Bounce</option>
-                                    <option value="shake">Shake</option>
-                                    <option value="swing">Swing</option>
-                                    <option value="wobble">Wobble</option>
-                                    <option value="jello">Jello</option>
-                                    <option value="heartbeat">Heartbeat</option>
-                                    <option value="flash">Flash</option>
-                                    <option value="rubberband">Rubber Band</option>
-                                    <option value="tada">Tada</option>
-                                  </optgroup>
-                                  
-                                  <optgroup label="Continuous Animations">
-                                    <option value="float">Float</option>
-                                    <option value="pulse">Pulse</option>
-                                    <option value="spin">Spin</option>
-                                    <option value="ping">Ping</option>
-                                  </optgroup>
-                                  
-                                  <optgroup label="Special Effects">
-                                    <option value="pop">Pop</option>
-                                    <option value="glow">Glow</option>
-                                    <option value="blur-in">Blur In</option>
-                                  </optgroup>
-                                </select>
-                              </div>
-                              
-                              {/* Loop Toggle */}
-                              <div className="flex gap-2 px-3 py-2 border rounded-md bg-background">
-                                <Label htmlFor="animation-loop" className="text-xs cursor-pointer whitespace-nowrap">
-                                  Looping
-                                </Label>
-                                <Switch
-                                  id="animation-loop"
-                                  checked={animationLoop}
-                                  onCheckedChange={setAnimationLoop}
-                                  disabled={selectedAnimation === 'none'}
-                                />
-                                {animationLoop && (
-                                  <>
-                                    <Label htmlFor="loop-delay" className="text-xs text-muted-foreground whitespace-nowrap ml-4">
-                                      Looping Time
-                                    </Label>
-                                    <Input
-                                      id="loop-delay"
-                                      type="number"
-                                      min="0"
-                                      max="10"
-                                      step="0.5"
-                                      value={loopDelay}
-                                      onChange={(e) => setLoopDelay(parseFloat(e.target.value) || 0)}
-                                      className="h-6 text-xs px-2 w-16"
-                                    />
-                                    <span className="text-xs text-muted-foreground">s</span>
-                                  </>
-                                )}
-                              </div>
+                            <div className="px-3 py-2 border rounded-md bg-background/50">
+                              <p className="text-sm font-medium">Float (Looping every 2s)</p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Preview animation in signature below
+                              </p>
                             </div>
-                            
-                            <p className="text-xs text-muted-foreground">
-                              Preview animation in signature below {animationLoop && `(Looping${loopDelay > 0 ? ` every ${loopDelay}s` : ' continuously'})`}
-                            </p>
 
                             {/* Convert to Animated GIF Button */}
                             <div className="mt-3">
                               <Button
                                 onClick={generateAnimatedGif}
-                                disabled={isGeneratingGif || !displayImage || selectedAnimation === 'none'}
+                                disabled={isGeneratingGif || !displayImage}
                                 className="w-full"
                                 variant="default"
                                 size="sm"
@@ -1720,9 +1560,7 @@ export default function EmailSignatureGenerator() {
                                 )}
                               </Button>
                               <p className="text-xs text-muted-foreground mt-2 text-center">
-                                {selectedAnimation === 'none' 
-                                  ? 'No animation selected - will use static image'
-                                  : 'Creates animated GIF that works in all email clients'}
+                                Creates animated GIF that works in all email clients
                               </p>
                             </div>
                           </div>
