@@ -115,7 +115,8 @@ function generateEmailSignatureHtml(
   animationLoop: boolean = false,
   loopDelay: number = 0,
   animatedGifUrl: string | null = null,
-  isPreview: boolean = false
+  isPreview: boolean = false,
+  logoUrl: string = ''
 ): string {
   const { name, title, userImage, linkedinUrl, instagramUrl, whatsappUrl } = formData;
 
@@ -140,6 +141,13 @@ function generateEmailSignatureHtml(
   const userImageUrl = isPreview 
     ? (userImage || displayImage || "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/document-uploads/Group-1773-1759278642509.png")
     : (animatedGifUrl || userImage || displayImage || "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/document-uploads/Group-1773-1759278642509.png");
+
+  // Logo URL logic: Convert relative path to absolute URL for email compatibility
+  const finalLogoUrl = logoUrl.startsWith('http') 
+    ? logoUrl 
+    : (logoUrl.startsWith('/') 
+        ? `${typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'}${logoUrl}`
+        : logoUrl);
 
   // Add toggles logic
   const enabledSocials: {url: string; icon: string}[] = [];
@@ -188,7 +196,7 @@ function generateEmailSignatureHtml(
       <td class="pc-w800-halign-center" align="left" valign="top">
         <table class="pc-w800-halign-center" align="left" border="0" cellpadding="0" cellspacing="0" role="presentation">
           <tr>
-            <td class="pc-w800-spacing-5-0-5-0" valign="top" style="padding: 5px 0px 5px 0px; height: auto;">
+            <td class="pc-w800-spacing-5-0-5-0" valign="top" style="padding: 10px 0px 10px 0px; height: auto;">
               <table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%">
                 <tr>
                   <td valign="top" class="pc-w800-align-center" align="left">
@@ -761,7 +769,10 @@ function generateEmailSignatureHtml(
                                                                                                                 <td class="pc-w800-halign-center" align="left" valign="top" style="line-height: 1px; font-size: 1px;">
                                                                                                                     <table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation">
                                                                                                                         <tr>
-                                                                                                                            <td class="pc-w800-halign-center" align="left" valign="top" style="padding: 0px 0px 12px 0px; height: auto;"> <img src="${userImageUrl}" class="pc-w800-align-center ${animationType !== 'none' ? 'animated-image' : ''}" width="148" height="148" alt="" style="display: block; outline: 0; line-height: 100%; -ms-interpolation-mode: bicubic; width: 148px; height: 148px; max-width: 100%; border: 0; border-radius: 50%;" /> </td>
+                                                                                                                            <td class="pc-w800-halign-center" align="left" valign="top" style="padding: 0px 0px 8px 0px; height: auto;"> <img src="${userImageUrl}" class="pc-w800-align-center ${animationType !== 'none' ? 'animated-image' : ''}" width="148" height="148" alt="" style="display: block; outline: 0; line-height: 100%; -ms-interpolation-mode: bicubic; width: 148px; height: 148px; max-width: 100%; border: 0; border-radius: 50%;" /> </td>
+                                                                                                                        </tr>
+                                                                                                                        <tr>
+                                                                                                                            <td class="pc-w800-halign-center" align="center" valign="top" style="padding: 4px 0px 12px 0px; height: auto;"> <img src="${finalLogoUrl}" class="pc-w800-align-center" width="90" height="auto" alt="Bistrochat Logo" style="display: block; outline: 0; line-height: 100%; -ms-interpolation-mode: bicubic; max-width: 90px; height: auto; border: 0;" /> </td>
                                                                                                                         </tr>
                                                                                                                     </table>
                                                                                                                 </td>
@@ -855,13 +866,13 @@ function generateEmailSignatureHtml(
                                                                                                     <td class="pc-w800-halign-center pc-w800-valign-middle" align="left" valign="middle">
                                                                                                         <table class="pc-w800-halign-center" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation">
                                                                                                             <tr>
-                                                                                                                <td class="pc-w800-halign-center" align="left" valign="top">
-                                                                                                                    <table border="0" cellpadding="0" cellspacing="0" role="presentation" class="pc-w800-halign-center" align="left">
+                                                                                                                <td class="pc-w800-halign-center" align="center" valign="top">
+                                                                                                                    <table border="0" cellpadding="0" cellspacing="0" role="presentation" class="pc-w800-halign-center" align="center">
                                                                                                                         <tr>
-                                                                                                                            <td valign="top" class="pc-w800-align-center" align="left">
+                                                                                                                            <td valign="top" class="pc-w800-align-center" align="center">
                                                                                                                                 <div class="pc-font-alt pc-w800-align-center" style="text-decoration: none;">
                                                                                                                                     <div style="font-size:25.6px;line-height:32px;text-align:center;text-align-last:center;color:#ffffff;font-family:'Arial', Helvetica, sans-serif;font-style:normal;letter-spacing:-0.16px;">
-                                                                                                                                        <div style="font-family:'Arial', Helvetica, sans-serif;" class="pc-w800-text-align-center"><span style="font-family: 'Arial', Helvetica, sans-serif; font-weight: 700; font-size: 25.6px; line-height: 32px;" class="pc-w800-font-size-28px">${quoteLine1}</span> <br><span style="font-family: 'Arial', Helvetica, sans-serif; font-weight: 700; font-size: 25.6px; line-height: 32px;" class="pc-w800-font-size-28px">${quoteLine2}</span> <br><span style="font-family: 'Arial', Helvetica, sans-serif; font-weight: 700; font-size: 25.6px; line-height: 32px;" class="pc-w800-font-size-28px">${quoteLine3}</span> </div>
+                                                                                                                                        <div style="font-family:'Arial', Helvetica, sans-serif;" class="pc-w800-text-align-center"><span style="font-family: 'Arial', Helvetica, sans-serif; font-weight: 700; font-size: 25.6px; line-height: 32px;" class="pc-w800-font-size-28px">${quoteLine1}</span><br><span style="font-family: 'Arial', Helvetica, sans-serif; font-weight: 700; font-size: 25.6px; line-height: 32px;" class="pc-w800-font-size-28px">${quoteLine2}</span><br><span style="font-family: 'Arial', Helvetica, sans-serif; font-weight: 700; font-size: 25.6px; line-height: 32px;" class="pc-w800-font-size-28px">${quoteLine3}</span></div>
                                                                                                                                     </div>
                                                                                                                                 </div>
                                                                                                                             </td>
@@ -1020,14 +1031,14 @@ const getAnimationVariants = (animationType: string) => {
 
 export default function EmailSignatureGenerator() {
   const [formData, setFormData] = useState<FormData>({
-    name: 'Hacene Taibi',
-    title: 'CEO / Co-Founder @bistrochat',
+    name: '',
+    title: '',
     userImage: '',
     linkedinUrl: '',
     instagramUrl: '',
     whatsappUrl: ''
   });
-  const [displayImage, setDisplayImage] = useState('https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/document-uploads/Group-1773-1759278642509.png');
+  const [displayImage, setDisplayImage] = useState('');
   const [generatedHtml, setGeneratedHtml] = useState('');
   const [copied, setCopied] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -1044,6 +1055,9 @@ export default function EmailSignatureGenerator() {
   const [animationLoop, setAnimationLoop] = useState(true);
   const [loopDelay, setLoopDelay] = useState(4); // 4 seconds for slower animation
   
+  // Fixed logo - cannot be changed by user
+  const logoUrl = '/images/Union.svg';
+  
   // GIF generation state
   const [isGeneratingGif, setIsGeneratingGif] = useState(false);
   const [gifProgress, setGifProgress] = useState(0);
@@ -1051,9 +1065,9 @@ export default function EmailSignatureGenerator() {
 
   // Generate preview HTML (with CSS animations for preview)
   useEffect(() => {
-    const html = generateEmailSignatureHtml(formData, displayImage, linkedinToggle, instagramToggle, whatsappToggle, selectedAnimation, animationLoop, loopDelay, animatedGifUrl, true);
+    const html = generateEmailSignatureHtml(formData, displayImage, linkedinToggle, instagramToggle, whatsappToggle, selectedAnimation, animationLoop, loopDelay, animatedGifUrl, true, logoUrl);
     setGeneratedHtml(html);
-  }, [formData, displayImage, linkedinToggle, instagramToggle, whatsappToggle, selectedAnimation, animationLoop, loopDelay, animatedGifUrl]);
+  }, [formData, displayImage, linkedinToggle, instagramToggle, whatsappToggle, selectedAnimation, animationLoop, loopDelay, animatedGifUrl, logoUrl]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
@@ -1290,7 +1304,8 @@ export default function EmailSignatureGenerator() {
       animationLoop, 
       loopDelay, 
       animatedGifUrl, 
-      false // isPreview = false for copy mode
+      false, // isPreview = false for copy mode
+      logoUrl
     );
     
     let htmlToCopy: string;
@@ -1415,6 +1430,7 @@ export default function EmailSignatureGenerator() {
                     maxLength={30}
                     placeholder="Enter your name"
                     className="text-base"
+                    autoComplete="off"
                   />
                 </div>
                 
@@ -1428,6 +1444,7 @@ export default function EmailSignatureGenerator() {
                     maxLength={30}
                     placeholder="Enter your job title"
                     className="text-base"
+                    autoComplete="off"
                   />
                 </div>
                 
@@ -1456,6 +1473,7 @@ export default function EmailSignatureGenerator() {
                         value={formData.userImage}
                         onChange={handleInputChange}
                         className="text-base"
+                        autoComplete="off"
                       />
                       
                       {/* Show animation selector if URL is provided */}
@@ -1666,6 +1684,7 @@ export default function EmailSignatureGenerator() {
                         onChange={handleInputChange}
                         placeholder="https://linkedin.com/in/username"
                         className="flex-1 text-base"
+                        autoComplete="off"
                       />
                       <Switch
                         checked={linkedinToggle}
@@ -1685,6 +1704,7 @@ export default function EmailSignatureGenerator() {
                         onBlur={handleInstagramBlur}
                         placeholder="https://instagram.com/username"
                         className="flex-1 text-base"
+                        autoComplete="off"
                       />
                       <Switch
                         checked={instagramToggle}
@@ -1703,6 +1723,7 @@ export default function EmailSignatureGenerator() {
                         onChange={handleInputChange}
                         placeholder="https://wa.me/phone"
                         className="flex-1 text-base"
+                        autoComplete="off"
                       />
                       <Switch
                         checked={whatsappToggle}
