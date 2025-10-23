@@ -1056,7 +1056,8 @@ export default function EmailSignatureGenerator() {
   const [loopDelay, setLoopDelay] = useState(4); // 4 seconds for slower animation
   
   // Fixed logo - cannot be changed by user
-  const logoUrl = '/images/Union.svg';
+  // Uploaded to Vercel Blob for better email client compatibility (PNG format)
+  const logoUrl = 'https://3ifjdgdzwnj2mome.public.blob.vercel-storage.com/logos/bistrochat-logo-1761195438732.png';
   
   // GIF generation state
   const [isGeneratingGif, setIsGeneratingGif] = useState(false);
