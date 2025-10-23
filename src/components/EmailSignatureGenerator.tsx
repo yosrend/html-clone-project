@@ -422,7 +422,7 @@ function generateEmailSignatureHtml(
       'float': `
         @keyframes float {
           0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-10px); }
+          50% { transform: translateY(-5px); }
         }
         .animated-image { animation: float ${animDuration}s ease-in-out ${iterCount}; }
       `,
@@ -1017,7 +1017,7 @@ const getAnimationVariants = (animationType: string) => {
     },
     'float': {
       initial: { y: 0 },
-      animate: { y: [-5, 5, -5] },
+      animate: { y: [-3, 3, -3] },
       transition: { duration: 3, repeat: Infinity, ease: "easeInOut" }
     },
     'pulse': {

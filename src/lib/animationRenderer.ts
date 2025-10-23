@@ -138,7 +138,7 @@ function renderAnimationFrame(
   
   // Special handling for float animation - move circle position, not content
   if (animation === 'float') {
-    const floatHeight = 15;
+    const floatHeight = 8; // Reduced from 15 to 8 for subtle float effect
     const offsetY = Math.sin(progress * Math.PI * 2) * floatHeight;
     
     // Use smaller radius to ensure circle stays within canvas bounds during float
@@ -175,7 +175,7 @@ function renderAnimationFrame(
 
   switch (animation) {
     case 'bounce': {
-      const bounceHeight = 15;
+      const bounceHeight = 10; // Reduced from 15 to 10 for subtle bounce effect
       const offsetY = Math.abs(Math.sin(progress * Math.PI * 2)) * bounceHeight;
       ctx.translate(0, -offsetY);
       ctx.drawImage(img, 0, 0, width, height);
