@@ -126,7 +126,7 @@ function generateEmailSignatureHtml(
   const websiteDomain = websiteParts[websiteParts.length - 1];
 
   const aiSystemText = "Ai Restaurant Reservation System";
-  const quoteLine1 = "“unleash ";
+  const quoteLine1 = "“Unleash ";
   const quoteLine2 = "iconic ";
   const quoteLine3 = "hospitality”";
 
