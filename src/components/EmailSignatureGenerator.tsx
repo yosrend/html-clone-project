@@ -131,7 +131,7 @@ function generateEmailSignatureHtml(
   const quoteLine3 = "hospitality”";
 
   const qrCodeImage = "https://cloudfilesdm.com/postcards/qr-code_-web1-ff4d12fd.png";
-  const linkedinIcon = "https://cloudfilesdm.com/postcards/c231400b1feab7fd7b8741734755b7d7.png";
+  const linkedinIcon = "https://3ifjdgdzwnj2mome.public.blob.vercel-storage.com/signatures/signature-1761544552028-nisttj.png";
   const instagramIcon = "https://cloudfilesdm.com/postcards/fdaa7deebf8b194aec96c9d4d1069569.png";
   const whatsappIcon = "https://cloudfilesdm.com/postcards/3ccabb4eeded9b30912a1e04ea0ffadb.png";
   const bgIcon = "https://cloudfilesdm.com/postcards/bg-icon-ad50ac51.png";
