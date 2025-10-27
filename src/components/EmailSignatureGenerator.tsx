@@ -131,9 +131,9 @@ function generateEmailSignatureHtml(
   const quoteLine3 = "hospitality”";
 
   const qrCodeImage = "https://cloudfilesdm.com/postcards/qr-code_-web1-ff4d12fd.png";
-  const linkedinIcon = "https://3ifjdgdzwnj2mome.public.blob.vercel-storage.com/signatures/pure-1761554124240-bli82o.png";
-  const instagramIcon = "https://cloudfilesdm.com/postcards/fdaa7deebf8b194aec96c9d4d1069569.png";
-  const whatsappIcon = "https://cloudfilesdm.com/postcards/3ccabb4eeded9b30912a1e04ea0ffadb.png";
+  const linkedinIcon = "https://3ifjdgdzwnj2mome.public.blob.vercel-storage.com/signatures/pure-1761555355225-v9mlo9.png";
+  const instagramIcon = "https://3ifjdgdzwnj2mome.public.blob.vercel-storage.com/signatures/pure-1761555358765-jkotht.png";
+  const whatsappIcon = "https://3ifjdgdzwnj2mome.public.blob.vercel-storage.com/signatures/pure-1761555361381-za5cx2.png";
   const bgIcon = "https://cloudfilesdm.com/postcards/bg-icon-ad50ac51.png";
   // Image URL logic:
   // - Preview mode: Always use static image (CSS animation will be applied)
