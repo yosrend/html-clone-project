@@ -20,7 +20,8 @@ export interface ResizeOptions {
  */
 export async function resizeImage(
   buffer: Buffer,
-  options: ResizeOptions = {}
+  options: ResizeOptions = {},
+  contentType: string = 'image/jpeg'
 ): Promise<Buffer> {
   const {
     width = 400,
@@ -30,12 +31,27 @@ export async function resizeImage(
   } = options;
 
   try {
-    const resized = await sharp(buffer)
-      .resize(width, height, { fit })
-      .jpeg({ quality, mozjpeg: true })
-      .toBuffer();
+    const sharpInstance = sharp(buffer).resize(width, height, { fit });
 
-    return resized;
+    // Preserve PNG transparency by using PNG format for PNG files
+    if (contentType === 'image/png') {
+      const resized = await sharpInstance
+        .png({
+          quality: Math.round(quality * 0.9), // Convert 1-100 to PNG compression
+          compressionLevel: 9,
+          adaptiveFiltering: true,
+          force: true // Ensure PNG output
+        })
+        .toBuffer();
+      return resized;
+    }
+    // Convert to JPEG for other formats (JPG, WebP, etc.)
+    else {
+      const resized = await sharpInstance
+        .jpeg({ quality, mozjpeg: true })
+        .toBuffer();
+      return resized;
+    }
   } catch (error) {
     console.error('Error resizing image:', error);
     throw new Error('Failed to resize image');
@@ -68,7 +84,7 @@ export async function uploadImage(
 
     // Resize image jika ada options
     if (options.width || options.height) {
-      buffer = await resizeImage(buffer, options);
+      buffer = await resizeImage(buffer, options, contentType);
     }
 
     // Generate unique filename
